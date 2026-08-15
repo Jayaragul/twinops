@@ -1,0 +1,94 @@
+# A two-stage machining line with transfer and inspection.
+#
+# Deliberately unbalanced: CNC_02 is slower than CNC_01, so the line has a real
+# bottleneck to find. Run it and the report will point at it.
+#
+#   twin run examples/line_a.twin --for 8h
+#
+# Flow:
+#   Raw_Intake → Buffer_In → CNC_01 → Buffer_Mid → CNC_02 → Buffer_Xfer
+#              → Transfer → Buffer_Inspect → Inspection → Buffer_Out → Shipping
+
+version: 1
+
+twin:
+  type: Factory
+  name: Demo_Plant
+  children:
+    - type: Area
+      name: Line_A
+      children:
+        - type: Source
+          name: Raw_Intake
+          properties:
+            interval: {exponential: {mean: 25s}}
+            part_kind: housing
+
+        - type: Buffer
+          name: Buffer_In
+          properties: {capacity: 25}
+
+        - type: Machine
+          name: CNC_01
+          properties:
+            cycle_time: {normal: {mean: 40s, sd: 4s}}
+            mtbf: 45min
+            mttr: {normal: {mean: 6min, sd: 90s}}
+
+        - type: Buffer
+          name: Buffer_Mid
+          properties: {capacity: 8}
+
+        - type: Machine
+          name: CNC_02          # slower on purpose — this is the constraint
+          properties:
+            cycle_time: {normal: {mean: 55s, sd: 6s}}
+            mtbf: 90min
+            mttr: {normal: {mean: 9min, sd: 2min}}
+
+        - type: Buffer
+          name: Buffer_Xfer
+          properties: {capacity: 6}
+
+        - type: Conveyor
+          name: Transfer
+          properties: {travel_time: 12s}
+
+        - type: Buffer
+          name: Buffer_Inspect
+          properties: {capacity: 12}
+
+        - type: Machine
+          name: Inspection
+          properties:
+            cycle_time: {triangular: {low: 12s, mode: 15s, high: 24s}}
+
+        - type: Buffer
+          name: Buffer_Out
+          properties: {capacity: 50}
+
+        - type: Sink
+          name: Shipping
+
+    - type: Area
+      name: Crew
+      children:
+        - type: Worker
+          name: Operator_A
+          properties: {role: operator}
+        - type: Worker
+          name: Tech_B
+          properties: {role: maintenance}
+
+# Material flow. Ownership is the tree; flow is this graph.
+connections:
+  - {from: Raw_Intake,     to: Buffer_In}
+  - {from: Buffer_In,      to: CNC_01}
+  - {from: CNC_01,         to: Buffer_Mid}
+  - {from: Buffer_Mid,     to: CNC_02}
+  - {from: CNC_02,         to: Buffer_Xfer}
+  - {from: Buffer_Xfer,    to: Transfer}
+  - {from: Transfer,       to: Buffer_Inspect}
+  - {from: Buffer_Inspect, to: Inspection}
+  - {from: Inspection,     to: Buffer_Out}
+  - {from: Buffer_Out,     to: Shipping}
