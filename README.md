@@ -35,25 +35,34 @@ buying a second machine is expensive and being wrong is worse.
 2. Describe your line in plain English, upload a spreadsheet, or drag the pieces around.
 3. Press **PLAY**.
 
+Got three machines doing the same job? That's **one card marked ×3**, not three
+boxes to wire up. Tap **+** on the card to add another.
+
 Your line runs. Buffers fill and drain. Machines turn amber when they're blocked and
 blue when they're starved. The station that's actually limiting your output gets a red
 ring around it, and a sentence in plain English tells you what to do about it.
 
-> ⚠️ **Inspection** is limiting your output — busy 100% of the time and rarely waiting
-> for parts. Adding capacity here helps the most; a bigger buffer in front of it will not.
+> ⚠️ **Inspection Station** is limiting your output — busy 100% of the time and rarely
+> waiting for parts.
+>
+> **What happens if you change it**
+>
+> | | | |
+> |---|--:|--:|
+> | Add one more Inspection Station (1 → 2) | **954** | **+17%** |
+> | Make the buffer 4× bigger (40 → 160) | 818 | +0% |
+>
+> Now shipping 818 per run. Do that and **Packing Station** becomes the next limit.
 
-That last part matters. Most people's instinct is to add storage in front of a
-struggling machine. **Buffers hide a constraint; they don't remove it.** TwinOps shows
-you the difference:
+Naming the constraint is a diagnosis. That table is a **decision** — TwinOps re-runs
+your line with each fix applied and reports what actually changes, including which
+station becomes the next limit once you've fixed this one.
 
-| What you change | Parts per 8-hour shift |
-|---|---|
-| Baseline (1 slow machine, buffer of 5) | 563 |
-| Make the buffer 8× bigger (40) | 563 &nbsp;&nbsp;**+0.0%** |
-| Add a second machine | 1,136 &nbsp;&nbsp;**+101.7%** |
+It also settles the argument people get wrong. The instinct is to add storage in front
+of a struggling machine. **Buffers hide a constraint; they don't remove it** — four
+times the buffer bought nothing at all, while one more machine bought 17%.
 
-Nothing about that is hardcoded — the engine derives it from first principles.
-Reproduce it yourself with `python examples/build_in_python.py`.
+Nothing there is hardcoded; the engine derives it by simulating each option.
 
 ---
 
@@ -62,11 +71,15 @@ Reproduce it yourself with `python examples/build_in_python.py`.
 **Type it.** Describe the line the way you'd say it out loud:
 
 ```
-3 milling machines, a buffer for 50 parts, an inspection station
+3 machines at 45 seconds, a buffer for 50 parts, an inspection station at 30 seconds
 ```
 
-TwinOps parses the quantities, builds the nodes, and wires one shared intake into
-all three machines — the way a real floor is laid out.
+TwinOps reads the quantities and the times, and wires one shared intake into the
+group — the way a real floor is laid out.
+
+**Reuse it.** Set a machine up once — name, cycle time, how often it breaks — then
+**Save to my shelf**. It stays in your browser and is one click away next time, so
+you're never retyping "Oven, 8 minutes" again.
 
 **Upload it.** Any CSV with recognisable column names. It accepts synonyms
 (`machine`/`station`/`name`, `duration`/`cycle_time`/`time`, `holds`/`capacity`),

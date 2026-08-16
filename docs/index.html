@@ -61,6 +61,14 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;touch-action:none
 .node-card .stat-label{font-family:var(--mono);fill:var(--text-dim);font-size:9px;pointer-events:none;}
 .node-card .auto-badge{font-family:var(--mono);fill:var(--text-dim);font-size:8px;font-style:italic;}
 .port{fill:var(--panel3);stroke:var(--border-strong);stroke-width:1.4;cursor:crosshair;}
+.count-pill{fill:var(--panel3);stroke:var(--border-strong);stroke-width:1;}
+.count-text{font-family:var(--mono);font-size:10.5px;font-weight:700;fill:var(--accent);}
+.step-hit{fill:var(--panel2);stroke:var(--border-strong);stroke-width:1;cursor:pointer;opacity:0;transition:opacity .12s;}
+.step-sign{font-size:13px;font-weight:700;fill:var(--text);pointer-events:none;opacity:0;transition:opacity .12s;user-select:none;}
+.node-card:hover .step-hit,.node-card.selected .step-hit{opacity:1;}
+.node-card:hover .step-sign,.node-card.selected .step-sign{opacity:1;}
+.step-hit:hover{fill:var(--accent);}
+@media (pointer:coarse){.step-hit,.step-sign{opacity:1;}}
 .port{r:5;}
 @media (pointer:coarse){.port{r:9;stroke-width:2;}}
 .port:hover{fill:var(--accent);stroke:var(--accent);}
@@ -99,8 +107,22 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;touch-action:none
 .btn:disabled{opacity:.35;cursor:default;}
 .btn:disabled:hover{border-color:var(--border-strong);color:var(--text);}
 
-.legend{position:absolute;bottom:16px;left:16px;display:flex;gap:14px;font-family:var(--mono);font-size:10.5px;color:var(--text-dim);background:rgba(13,17,32,.85);padding:8px 12px;border-radius:8px;border:1px solid var(--border);}
+.legend{position:absolute;bottom:104px;left:16px;display:flex;gap:14px;font-family:var(--mono);font-size:10.5px;color:var(--text-dim);background:rgba(13,17,32,.85);padding:8px 12px;border-radius:8px;border:1px solid var(--border);}
 .legend .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;}
+
+.shelf{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--border-strong);padding:8px 16px 10px;}
+.shelf-head{display:flex;align-items:baseline;gap:12px;margin-bottom:7px;}
+.shelf-title{font-family:var(--mono);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-dim);}
+.shelf-hint{font-size:11px;color:var(--text-dim);}
+.shelf-items{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;min-height:46px;align-items:center;}
+.shelf-card{flex:none;display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;cursor:pointer;position:relative;transition:border-color .15s,transform .1s;}
+.shelf-card:hover{border-color:var(--accent);}
+.shelf-card:active{transform:scale(.97);}
+.shelf-card .nm{font-size:12px;font-weight:600;white-space:nowrap;}
+.shelf-card .mt{font-family:var(--mono);font-size:9.5px;color:var(--text-dim);white-space:nowrap;}
+.shelf-card .rm{border:none;background:none;color:var(--text-dim);font-size:14px;line-height:1;cursor:pointer;padding:0 0 0 4px;}
+.shelf-card .rm:hover{color:var(--down);}
+.shelf-empty{font-size:11.5px;color:var(--text-dim);font-style:italic;}
 
 .hud{position:absolute;left:16px;top:16px;display:flex;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.4);}
 .hud.hidden{display:none;}
@@ -112,22 +134,39 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;touch-action:none
 
 .insight{position:absolute;left:50%;top:88px;transform:translateX(-50%);max-width:460px;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;padding:12px 18px;font-size:13px;line-height:1.5;box-shadow:0 10px 30px rgba(0,0,0,.4);text-align:center;}
 .insight.hidden{display:none;}
+.insight-x{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text-dim);font-size:15px;line-height:1;cursor:pointer;padding:2px 5px;border-radius:4px;}
+.insight-x:hover{color:var(--text);background:var(--panel2);}
+.insight.min .proj,.insight.min .insight-body{display:none;}
+.insight.min{padding:8px 34px 8px 14px;font-size:12px;}
+.insight-peek{display:none;}
+.insight.min .insight-peek{display:block;}
 .insight.warn{border-color:var(--blocked);}
 .insight.ok{border-color:var(--running);}
 .insight b{color:var(--blocked);}
+.proj{margin-top:11px;padding-top:10px;border-top:1px solid var(--border);text-align:left;}
+.proj-h{font-family:var(--mono);font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:7px;}
+.proj-row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:5px 8px;border-radius:5px;font-size:12.5px;}
+.proj-row.win{background:rgba(34,197,94,.11);}
+.proj-row.flat{opacity:.62;}
+.proj-l{color:var(--text);}
+.proj-n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.proj-d{font-size:11px;color:var(--text-dim);margin-left:5px;}
+.proj-row.win .proj-d{color:var(--running);font-weight:700;}
+.proj-f{font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.45;}
+.proj-f b{color:var(--blocked);}
 .insight.ok b{color:var(--running);}
 
-.transport{position:absolute;bottom:16px;right:16px;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.transport{position:absolute;bottom:104px;right:16px;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
 .transport.hidden{display:none;}
 .transport button{background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);font-size:13px;padding:6px 12px;border-radius:5px;cursor:pointer;}
 .transport button:hover{border-color:var(--accent);color:var(--accent);}
 .transport input[type=range]{width:160px;accent-color:var(--accent);}
 .transport .clock{font-family:var(--mono);font-size:12px;min-width:78px;text-align:right;}
 
-.report-toggle{position:absolute;right:16px;bottom:70px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text-dim);font-size:11px;padding:6px 12px;border-radius:6px;cursor:pointer;}
+.report-toggle{position:absolute;right:16px;bottom:158px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text-dim);font-size:11px;padding:6px 12px;border-radius:6px;cursor:pointer;}
 .report-toggle.hidden{display:none;}
 .report-toggle:hover{color:var(--accent);border-color:var(--accent);}
-.report-drawer{position:absolute;right:16px;bottom:112px;width:420px;max-height:50vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.report-drawer{position:absolute;right:16px;bottom:200px;width:420px;max-height:50vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
 .report-drawer.hidden{display:none;}
 .report-drawer table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;margin-bottom:14px;}
 .report-drawer th,.report-drawer td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--border);}
@@ -135,7 +174,7 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;touch-action:none
 .report-drawer th{color:var(--text-dim);font-weight:500;font-size:9px;text-transform:uppercase;}
 .report-drawer tr.bottleneck td{color:var(--blocked);}
 
-.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--panel3);border:1px solid var(--border-strong);color:var(--text);font-size:12.5px;padding:9px 16px;border-radius:8px;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast{position:absolute;left:50%;bottom:104px;transform:translateX(-50%);background:var(--panel3);border:1px solid var(--border-strong);color:var(--text);font-size:12.5px;padding:9px 16px;border-radius:8px;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
 </style>
 </head>
@@ -168,7 +207,7 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;touch-action:none
 
   <div class="canvas-wrap">
     <div class="topbar">
-      <input type="text" id="quickstart" placeholder='Try: &quot;3 sewing machines, a buffer for 50 shirts, an inspection table&quot;'>
+      <input type="text" id="quickstart" placeholder='Try: &quot;3 machines, a buffer for 50 items, an inspection station&quot;'>
       <button class="btn primary" id="quickstartBtn">Build it</button>
       <button class="btn" id="csvBtn">Upload spreadsheet</button>
       <input type="file" id="csvFile" accept=".csv" hidden>
@@ -196,6 +235,14 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;touch-action:none
       </div>
 
       <div class="inspector hidden" id="inspector"></div>
+
+      <div class="shelf" id="shelf">
+        <div class="shelf-head">
+          <span class="shelf-title">My machines</span>
+          <span class="shelf-hint" id="shelfHint">Set up a machine once, reuse it anywhere — click a card to drop it in.</span>
+        </div>
+        <div class="shelf-items" id="shelfItems"></div>
+      </div>
 
       <div class="legend">
         <span><span class="dot" style="background:var(--running)"></span>running</span>
@@ -509,47 +556,65 @@ class RSink{
 
 /* ============================= graph -> engine, run, analyse ============================= */
 
-function buildEngineFromGraph(graph, seed, until){
+function buildEngineFromGraph(graph, seed, until, overrides){
   const engine = new REngine(seed);
-  const byId = {};
-  const buffers = {}, stations = {}, sources = {}, sinks = {};
+  const byId = {};                     // node id -> engine object (first unit)
+  const buffers = {}, groups = {}, sources = {}, sinks = {};
+  overrides = overrides || {};         // {nodeId: {count: n}} for what-if runs
 
   for(const n of graph.nodes){
     if(n.type==='Buffer'){ const b=new RBuffer(n, engine); buffers[n.id]=b; byId[n.id]=b; }
   }
   for(const n of graph.nodes){
-    if(n.type==='Machine'){ const m=new RMachine(n, engine); stations[n.id]=m; byId[n.id]=m; }
+    if(n.type==='Machine'){
+      // A card marked x3 becomes three real machines pulling from the same
+      // buffer. They compete for parts exactly like physical machines do, so
+      // utilisation and queueing stay honest -- this is a drawing shorthand,
+      // not a shortcut in the maths.
+      const count = Math.max(1, (overrides[n.id] && overrides[n.id].count) || unitsOf(n));
+      const units = [];
+      for(let i=0;i<count;i++) units.push(new RMachine(n, engine));
+      groups[n.id] = units;
+      byId[n.id] = units;
+    }
     else if(n.type==='Source'){ const s=new RSource(n, engine); sources[n.id]=s; byId[n.id]=s; }
     else if(n.type==='Sink'){ const k=new RSink(n, engine); sinks[n.id]=k; byId[n.id]=k; }
   }
+  const each = x => Array.isArray(x) ? x : [x];
   for(const e of graph.edges){
     const from=byId[e.from], to=byId[e.to];
     if(!from || !to) continue;
-    if(from instanceof RBuffer){
-      if(to instanceof RSink) to.fedBy(from); else to.fedBy(from);
-    } else {
-      from.feeds(to);
-    }
+    if(from instanceof RBuffer){ each(to).forEach(t=>t.fedBy(from)); }
+    else { each(from).forEach(f=>each(to).forEach(t=>f.feeds(t))); }
   }
-  for(const id in stations) stations[id].setup();
+  for(const id in groups) groups[id].forEach(m=>m.setup());
   for(const id in sources) sources[id].setup();
 
   engine.run(until);
   for(const id in buffers) buffers[id].finalise(engine.now);
-  for(const id in stations) stations[id].tracker.close(engine.now);
+  for(const id in groups) groups[id].forEach(m=>m.tracker.close(engine.now));
 
-  return {engine, buffers, stations, sources, sinks};
+  return {engine, buffers, groups, sources, sinks};
 }
 
 function analyseRun(run, until){
   const stationsOut=[], buffersOut=[];
   let throughput=0, leadTimes=[];
-  for(const id in run.stations){
-    const s=run.stations[id];
+  for(const id in run.groups){
+    const units = run.groups[id];
+    const n = units.length;
+    // Report the group as one station. Percentages are averaged across units:
+    // "the sewing stage is 80% busy" is what a supervisor needs, not three
+    // separate rows they have to average in their head.
+    const avg = f => units.reduce((a,m)=>a+f(m),0)/n;
     stationsOut.push({
-      id, name:s.node.name, processed:s.processed,
-      utilisation:s.tracker.frac(RUNNING, until), blocked:s.tracker.frac(BLOCKED, until),
-      starved:s.tracker.frac(STARVED, until), down:s.tracker.frac(DOWN, until), failures:s.failures,
+      id, name:units[0].node.name, units:n,
+      processed: units.reduce((a,m)=>a+m.processed,0),
+      utilisation: avg(m=>m.tracker.frac(RUNNING, until)),
+      blocked:     avg(m=>m.tracker.frac(BLOCKED, until)),
+      starved:     avg(m=>m.tracker.frac(STARVED, until)),
+      down:        avg(m=>m.tracker.frac(DOWN, until)),
+      failures: units.reduce((a,m)=>a+m.failures,0),
     });
   }
   for(const id in run.buffers){
@@ -566,13 +631,56 @@ function analyseRun(run, until){
   return {stations:stationsOut, buffers:buffersOut, throughput, avgLead, bottleneck, duration:until};
 }
 
+/* Naming the bottleneck is a diagnosis, not a decision. The question anyone
+   actually has is "so should I buy another one?" -- so answer it by re-running
+   the model with one extra unit and reporting what changes. Cheap: a shift is
+   a few thousand events, so a handful of extra runs cost milliseconds. */
+function projectFixes(base, until, seed){
+  const options = [];
+  const bn = base.bottleneck;
+  if(!bn) return options;
+
+  const node = nodeById(bn.id);
+  if(node && node.type === 'Machine'){
+    const have = unitsOf(node);
+    const r = analyseRun(buildEngineFromGraph(graph, seed, until, {[bn.id]:{count:have+1}}), until);
+    options.push({
+      kind: 'capacity', nodeId: bn.id,
+      label: `Add one more ${bn.name} (${have} &rarr; ${have+1})`,
+      throughput: r.throughput,
+      delta: r.throughput - base.throughput,
+      pct: base.throughput ? (r.throughput-base.throughput)/base.throughput : 0,
+      newBottleneck: r.bottleneck ? r.bottleneck.name : null,
+    });
+  }
+
+  // The instinctive fix is more storage. Test it too, precisely so the report
+  // can show that it usually does nothing -- that comparison is the lesson.
+  const feeder = graph.edges.filter(e=>e.to===bn.id).map(e=>nodeById(e.from)).find(x=>x && x.type==='Buffer');
+  if(feeder){
+    const saved = feeder.props.capacity;
+    feeder.props.capacity = saved * 4;
+    const r = analyseRun(buildEngineFromGraph(graph, seed, until), until);
+    feeder.props.capacity = saved;
+    options.push({
+      kind: 'buffer', nodeId: feeder.id,
+      label: `Make ${feeder.name} 4&times; bigger (${saved} &rarr; ${saved*4})`,
+      throughput: r.throughput,
+      delta: r.throughput - base.throughput,
+      pct: base.throughput ? (r.throughput-base.throughput)/base.throughput : 0,
+    });
+  }
+  return options;
+}
+
 function insightText(report){
   if(!report.bottleneck || report.throughput===0){
     return {tone:'warn', html:'Nothing shipped yet — check that every piece has somewhere to send its work.'};
   }
   const bn=report.bottleneck, u=Math.round(bn.utilisation*100);
+  const many = bn.units>1 ? ` (you have ${bn.units})` : '';
   if(u>=75){
-    return {tone:'warn', html:`&#9888;&#65039; <b>${esc(bn.name)}</b> is your bottleneck — busy ${u}% of the time and rarely waiting for parts. Adding capacity here helps the most; a bigger buffer in front of it will not.`};
+    return {tone:'warn', html:`&#9888;&#65039; <b>${esc(bn.name)}</b>${many} is holding up the line — busy ${u}% of the time and rarely waiting for parts.`};
   }
   if(u<45){
     return {tone:'ok', html:`&#9989; Plenty of spare capacity — <b>${esc(bn.name)}</b> is your busiest step and it's only running ${u}% of the time.`};
@@ -598,13 +706,18 @@ function defaultName(type){
 function addNode(type, x, y, opts){
   opts = opts || {};
   const n = { id:newId(), type, name:opts.name||defaultName(type), x, y, auto:!!opts.auto,
-    props: type==='Machine' ? {cycleTime:opts.cycleTime||45, mtbf:opts.mtbf||null, mttr:opts.mttr||300}
+    props: type==='Machine' ? {cycleTime:opts.cycleTime||45, mtbf:opts.mtbf||null, mttr:opts.mttr||300,
+                               // one card can stand for several identical machines:
+                               // three sewing machines is one box that says x3, not
+                               // three boxes the user has to wire up individually
+                               count:Math.max(1, opts.count||1)}
          : type==='Buffer'  ? {capacity:opts.capacity||20}
          : type==='Source'  ? {interval:opts.interval||30}
          : {} };
   graph.nodes.push(n);
   return n;
 }
+function unitsOf(n){ return n.type==='Machine' ? Math.max(1, n.props.count||1) : 1; }
 function addEdge(fromId, toId){
   if(graph.edges.some(e=>e.from===fromId && e.to===toId)) return;
   graph.edges.push({id:'e'+(EDGE_SEQ++), from:fromId, to:toId});
@@ -666,7 +779,10 @@ function parseQuickStart(text){
   let bufferCount = 0;
   for(const clause of clauses){
     const lower = clause.toLowerCase();
-    const timeMatch = clause.match(/(\d+(?:\.\d+)?)\s*(sec|second|seconds|min|minute|minutes|hour|hours|hr)s?/i);
+    // Longest unit first, then a word boundary. Alternation is ordered, so
+    // putting "sec" before "seconds" matches "sec" and leaves "onds" stranded
+    // in the machine's name -- "Preparation Stations At Onds".
+    const timeMatch = clause.match(/(\d+(?:\.\d+)?)\s*(seconds|second|secs|sec|minutes|minute|mins|min|hours|hour|hrs|hr)\b/i);
     const numMatch = clause.match(/(\d+)/);
     if(/buffer|storage|queue|bin|basket|tray|stock/i.test(lower)){
       bufferCount++;
@@ -680,8 +796,13 @@ function parseQuickStart(text){
     else if(/^\s*an?\s/i.test(clause)) qty = 1;
     let name = clause.replace(/^\s*(\d+|an?)\s*/i,'').replace(/\bmachines?\b/gi,'').trim();
     if(timeMatch) name = name.replace(timeMatch[0],'').trim();
+    // drop connectives left dangling once the duration is removed:
+    // "inspection station at 35 seconds" -> "inspection station"
+    name = name.replace(/\s*\b(at|of|taking|takes|every|each|per|for|in)\b\s*$/i,'').trim();
     name = name.replace(/\s{2,}/g,' ').trim();
-    if(!name) continue;
+    // "3 machines" is legitimate -- stripping the word "machines" empties the
+    // name, and dropping the clause silently loses a station the user asked for
+    if(!name) name = 'Machine';
     stages.push({kind:'group', name: titleCase(name), qty,
       cycleTime: timeMatch ? parseDuration(timeMatch[1]+timeMatch[2]) : 45});
   }
@@ -712,16 +833,11 @@ function buildFromStages(stages, originX, originY){
         created.push(lastBuffer);
         x += 100;
       }
-      const nodes = [];
-      const rowSpan = 90;
-      const startY = y - (st.qty-1)*rowSpan/2;
-      for(let i=0;i<st.qty;i++){
-        const nm = st.qty>1 ? `${st.name} ${i+1}` : st.name;
-        const node = addNode('Machine', x, startY+i*rowSpan, {name:nm, cycleTime:st.cycleTime});
-        nodes.push(node); created.push(node);
-        addEdge(lastBuffer.id, node.id);
-      }
-      pendingGroupNodes = nodes;
+      // "3 sewing machines" is ONE card marked x3, not three boxes to wire up
+      const node = addNode('Machine', x, y, {name:st.name, cycleTime:st.cycleTime, count:st.qty});
+      created.push(node);
+      addEdge(lastBuffer.id, node.id);
+      pendingGroupNodes = [node];
       x += 190;
     } else {
       const buf = addNode('Buffer', x, y, {name:st.name, capacity:st.capacity});
@@ -800,18 +916,15 @@ function importCsvText(text){
       let type = idx.type!=null ? titleCase(r[idx.type].trim()) : inferType(r, idx);
       const qty = idx.quantity!=null ? (parseInt(r[idx.quantity],10)||1) : 1;
       const timeVal = idx.cycle_time!=null && r[idx.cycle_time] ? parseDuration(r[idx.cycle_time]) : undefined;
-      const nodes = [];
-      for(let q=0;q<qty;q++){
-        const nm = qty>1 ? `${name} ${q+1}` : name;
-        const n = addNode(type, baseX+i*190, baseY+q*90-((qty-1)*45), {
-          name:nm,
-          cycleTime: type==='Machine' ? timeVal : undefined,
-          interval: type==='Source' ? timeVal : undefined,
-          capacity: idx.capacity!=null && r[idx.capacity] ? parseInt(r[idx.capacity],10) : undefined,
-        });
-        nodes.push(n);
-      }
-      createdByName[name.toLowerCase()] = nodes;
+      // a quantity column becomes a count on one card, not N cards
+      const n = addNode(type, baseX+i*190, baseY, {
+        name,
+        count: type==='Machine' ? qty : undefined,
+        cycleTime: type==='Machine' ? timeVal : undefined,
+        interval: type==='Source' ? timeVal : undefined,
+        capacity: idx.capacity!=null && r[idx.capacity] ? parseInt(r[idx.capacity],10) : undefined,
+      });
+      createdByName[name.toLowerCase()] = [n];
     });
     dataRows.forEach((r,i)=>{
       const name = idx.name!=null ? r[idx.name].trim() : `Row ${i+1}`;
@@ -992,8 +1105,38 @@ function render(){
       el('text',{x:12,y:40,class:'type-label'},g).textContent=n.type.toUpperCase();
       const stat = el('text',{x:12,y:56,class:'stat-label'},g);
       if(n.auto) el('text',{x:CARD_W-8,y:56,'text-anchor':'end',class:'auto-badge'},g).textContent='auto';
+
+      /* How many of this machine you have, adjustable right on the card.
+         Adding a parallel machine is the single most common edit anyone makes,
+         so it must not require opening a panel and finding a field. */
+      let countBadge = null;
+      if(n.type==='Machine' && mode==='edit'){
+        const cg = el('g',{class:'count-ctl'},g);
+        el('rect',{x:CARD_W-46,y:6,width:40,height:19,rx:9.5,class:'count-pill'},cg);
+        countBadge = el('text',{x:CARD_W-26,y:19.5,'text-anchor':'middle',class:'count-text'},cg);
+        countBadge.textContent = '×'+unitsOf(n);
+        const minus = el('g',{class:'step'},cg);
+        el('circle',{cx:CARD_W-52,cy:15.5,r:9,class:'step-hit'},minus);
+        el('text',{x:CARD_W-52,y:19.5,'text-anchor':'middle',class:'step-sign'},minus).textContent='−';
+        const plus = el('g',{class:'step'},cg);
+        el('circle',{cx:CARD_W+1,cy:15.5,r:9,class:'step-hit'},plus);
+        el('text',{x:CARD_W+1,y:19.5,'text-anchor':'middle',class:'step-sign'},plus).textContent='+';
+        const bump = d => ev => {
+          ev.stopPropagation();
+          snapshot();
+          n.props.count = Math.max(1, Math.min(20, unitsOf(n)+d));
+          render(); selectNode(n.id);
+        };
+        minus.addEventListener('pointerdown', bump(-1));
+        plus .addEventListener('pointerdown', bump(+1));
+      } else if(n.type==='Machine' && unitsOf(n)>1){
+        el('rect',{x:CARD_W-40,y:6,width:34,height:19,rx:9.5,class:'count-pill'},g);
+        countBadge = el('text',{x:CARD_W-23,y:19.5,'text-anchor':'middle',class:'count-text'},g);
+        countBadge.textContent = '×'+unitsOf(n);
+      }
+
       makePorts(g,n);
-      nodeEls.set(n.id,{g,icon,stat,type:n.type});
+      nodeEls.set(n.id,{g,icon,stat,type:n.type,countBadge});
     }
     g.addEventListener('pointerdown', ev=>onNodeMouseDown(ev,n));
   });
@@ -1023,7 +1166,9 @@ function renderInspector(){
   let extra = '';
   if(n.type==='Machine'){
     extra = `
-      <label>How long does one part take?</label>
+      <label>How many of these do you have?</label>
+      <div class="field-row"><input type="number" id="f-count" min="1" max="20" value="${unitsOf(n)}"><span style="align-self:center;font-size:11px;color:var(--text-dim)">working side by side</span></div>
+      <label>How long does one part take? <span style="text-transform:none;letter-spacing:0">(on one machine)</span></label>
       <div class="field-row"><input type="number" id="f-cycle" min="1" value="${n.props.cycleTime}"><select id="f-cycleUnit"><option value="1">sec</option><option value="60">min</option><option value="3600">hr</option></select></div>
       <details><summary>Reliability (optional)</summary>
         <label>Breaks down roughly every</label>
@@ -1041,11 +1186,18 @@ function renderInspector(){
     <div class="row"><h3>${n.type}</h3><button class="del" id="f-del" title="delete">&times;</button></div>
     <label>Name</label><input type="text" id="f-name" value="${esc(n.name)}">
     ${extra}
+    ${n.type==='Machine' ? '<button class="btn ghost inspector-save" id="f-save">&#43; Save to my shelf</button>' : ''}
     ${n.auto ? '<div class="auto-note">We added this automatically so material has somewhere to flow. Edit it or delete it freely.</div>' : ''}
   `;
   document.getElementById('f-name').addEventListener('input', e=>{ n.name=e.target.value; updateNodeLabel(n); });
   document.getElementById('f-del').addEventListener('click', ()=>{ snapshot(); removeNode(n.id); selectedId=null; render(); });
   if(n.type==='Machine'){
+    document.getElementById('f-count').addEventListener('input', e=>{
+      n.props.count = Math.max(1, Math.min(20, parseInt(e.target.value,10)||1));
+      render(); selectNode(n.id);
+    });
+    const saveBtn = document.getElementById('f-save');
+    if(saveBtn) saveBtn.addEventListener('click', ()=>saveToShelf(n));
     document.getElementById('f-cycle').addEventListener('input', e=>{ n.props.cycleTime = (parseFloat(e.target.value)||1) * parseFloat(document.getElementById('f-cycleUnit').value); });
     document.getElementById('f-cycleUnit').addEventListener('change', e=>{ n.props.cycleTime = (parseFloat(document.getElementById('f-cycle').value)||1) * parseFloat(e.target.value); });
     document.getElementById('f-mtbf').addEventListener('input', e=>{ n.props.mtbf = e.target.value ? parseFloat(e.target.value)*60 : null; });
@@ -1193,7 +1345,50 @@ function runSimAndEnterReplay(until, seed){
   const ins = insightText(lastReport);
   const insightEl = document.getElementById('insight');
   insightEl.className = 'insight '+ins.tone;
-  insightEl.innerHTML = ins.html;
+  let html = ins.html;
+
+  const fixes = projectFixes(lastReport, until, seed);
+  if(fixes.length){
+    const best = fixes.reduce((a,b)=>b.delta>a.delta?b:a);
+    html += '<div class="proj"><div class="proj-h">What happens if you change it</div>';
+    for(const f of fixes){
+      const gain = f.pct>=0.02, isBest = f===best && gain;
+      const sign = f.delta>=0 ? '+' : '';
+      html += `<div class="proj-row${isBest?' win':''}${!gain?' flat':''}">
+        <span class="proj-l">${f.label}</span>
+        <span class="proj-n">${f.throughput.toLocaleString()} <span class="proj-d">${sign}${Math.round(f.pct*100)}%</span></span>
+      </div>`;
+    }
+    html += `<div class="proj-f">Now shipping ${lastReport.throughput.toLocaleString()} per run.`;
+    if(best && best.pct>=0.02){
+      if(best.kind==='capacity' && best.newBottleneck && best.newBottleneck!==lastReport.bottleneck.name){
+        html += ` Do that and <b>${esc(best.newBottleneck)}</b> becomes the next limit.`;
+      }
+    } else {
+      // Every option gained nothing, which means something else is equally
+      // tight. Say that plainly -- "+0%" beside a recommendation just reads
+      // as a broken tool.
+      const tie = lastReport.stations
+        .filter(st=>st.id!==lastReport.bottleneck.id && st.utilisation >= lastReport.bottleneck.utilisation-0.05)
+        .map(st=>st.name);
+      html += tie.length
+        ? ` Neither change helps on its own — <b>${esc(tie[0])}</b> is just as loaded, so you would have to add capacity in both places.`
+        : ' Neither change helps on its own — the line is limited by how fast work arrives, not by these steps.';
+    }
+    html += '</div></div>';
+  }
+  insightEl.innerHTML =
+    '<button class="insight-x" title="Hide / show details">&minus;</button>' +
+    '<div class="insight-peek"></div>' +
+    '<div class="insight-body">' + html + '</div>';
+  const peek = insightEl.querySelector('.insight-peek');
+  peek.textContent = lastReport.bottleneck
+    ? `${lastReport.bottleneck.name} is the limit · ${lastReport.throughput.toLocaleString()} per run`
+    : `${lastReport.throughput.toLocaleString()} per run`;
+  insightEl.querySelector('.insight-x').addEventListener('click', ()=>{
+    const min = insightEl.classList.toggle('min');
+    insightEl.querySelector('.insight-x').innerHTML = min ? '&plus;' : '&minus;';
+  });
 
   buildReportDrawer(lastReport);
 
@@ -1291,10 +1486,10 @@ function applyState(){ if(mode==='running' && replay) drawReplay(); }
 
 function buildReportDrawer(report){
   const box = document.getElementById('reportDrawer');
-  let stationRows = report.stations.map(s=>`<tr class="${report.bottleneck&&s.id===report.bottleneck.id?'bottleneck':''}"><td>${esc(s.name)}</td><td>${s.processed}</td><td>${(s.utilisation*100).toFixed(0)}%</td><td>${(s.blocked*100).toFixed(0)}%</td><td>${(s.starved*100).toFixed(0)}%</td></tr>`).join('');
+  let stationRows = report.stations.map(s=>`<tr class="${report.bottleneck&&s.id===report.bottleneck.id?'bottleneck':''}"><td>${esc(s.name)}${s.units>1?` <span style="color:var(--accent)">×${s.units}</span>`:''}</td><td>${s.processed}</td><td>${(s.utilisation*100).toFixed(0)}%</td><td>${(s.blocked*100).toFixed(0)}%</td><td>${(s.starved*100).toFixed(0)}%</td></tr>`).join('');
   let bufferRows = report.buffers.map(b=>`<tr><td>${esc(b.name)}</td><td>${b.avg.toFixed(1)}</td><td>${b.peak}</td><td>${b.capacity}</td></tr>`).join('');
   box.innerHTML = `
-    <table><thead><tr><th>Station</th><th>Made</th><th>Busy</th><th>Blocked</th><th>Waiting</th></tr></thead><tbody>${stationRows}</tbody></table>
+    <table><thead><tr><th>Step</th><th>Made</th><th>Busy</th><th>Blocked</th><th>Waiting</th></tr></thead><tbody>${stationRows}</tbody></table>
     <table><thead><tr><th>Buffer</th><th>Avg</th><th>Peak</th><th>Cap</th></tr></thead><tbody>${bufferRows}</tbody></table>
     <div style="font-size:11px;color:var(--text-dim)">Shipped ${report.throughput.toLocaleString()} &middot; avg time in system ${fmtTime(report.avgLead)}</div>
   `;
@@ -1311,6 +1506,76 @@ function backToEdit(){
   document.getElementById('reportDrawer').classList.add('hidden');
   render();
 }
+/* ---- my machines shelf ---------------------------------------------
+   Re-typing "Oven, 8 minutes, breaks every 3 hours" every session is the kind
+   of small friction that stops people using a tool twice. Save it once; it
+   stays in this browser and is one click away from then on. */
+const SHELF_KEY = 'twinops_shelf';
+let shelf = [];
+function loadShelf(){
+  try{ shelf = JSON.parse(localStorage.getItem(SHELF_KEY) || '[]'); }
+  catch(e){ shelf = []; }
+  if(!Array.isArray(shelf)) shelf = [];
+}
+function persistShelf(){
+  try{ localStorage.setItem(SHELF_KEY, JSON.stringify(shelf)); }catch(e){}
+}
+function saveToShelf(n){
+  const item = {
+    name: n.name,
+    cycleTime: n.props.cycleTime,
+    mtbf: n.props.mtbf || null,
+    mttr: n.props.mttr || 300,
+    count: unitsOf(n),
+  };
+  const at = shelf.findIndex(s=>s.name.toLowerCase()===item.name.toLowerCase());
+  if(at >= 0) shelf[at] = item; else shelf.push(item);
+  persistShelf(); renderShelf();
+  toast(at >= 0 ? `Updated "${item.name}" on your shelf.` : `Saved "${item.name}" — reuse it any time.`);
+}
+function shelfLabel(it){
+  const t = it.cycleTime;
+  const time = t >= 3600 ? (t/3600).toFixed(t%3600?1:0)+'h' : t >= 60 ? (t/60).toFixed(t%60?1:0)+'min' : Math.round(t)+'s';
+  return time + (it.count>1 ? ` · ×${it.count}` : '') + (it.mtbf ? ' · breaks down' : '');
+}
+function addFromShelf(it){
+  snapshot();
+  const n = addNode('Machine', -panX + 160, canvasCenterY(), {
+    name: it.name, cycleTime: it.cycleTime, mtbf: it.mtbf, mttr: it.mttr, count: it.count,
+  });
+  render(); selectNode(n.id);
+  toast(`Added ${it.name}. Drag it where you want it, then connect it up.`);
+}
+function renderShelf(){
+  const box = document.getElementById('shelfItems');
+  const hint = document.getElementById('shelfHint');
+  box.innerHTML = '';
+  if(!shelf.length){
+    const d = document.createElement('div');
+    d.className = 'shelf-empty';
+    d.textContent = 'Nothing saved yet — set up a machine, then use “Save to my shelf”.';
+    box.appendChild(d);
+    if(hint) hint.textContent = 'Set up a machine once, reuse it anywhere.';
+    return;
+  }
+  if(hint) hint.textContent = 'Click one to drop it on the canvas.';
+  shelf.forEach((it, i)=>{
+    const card = document.createElement('div');
+    card.className = 'shelf-card';
+    const txt = document.createElement('div');
+    txt.innerHTML = `<div class="nm"></div><div class="mt"></div>`;
+    txt.querySelector('.nm').textContent = it.name;
+    txt.querySelector('.mt').textContent = shelfLabel(it);
+    card.appendChild(txt);
+    const rm = document.createElement('button');
+    rm.className = 'rm'; rm.innerHTML = '&times;'; rm.title = 'Remove from shelf';
+    rm.addEventListener('click', ev=>{ ev.stopPropagation(); shelf.splice(i,1); persistShelf(); renderShelf(); });
+    card.appendChild(rm);
+    card.addEventListener('click', ()=>addFromShelf(it));
+    box.appendChild(card);
+  });
+}
+
 /* ---- undo ----------------------------------------------------------
    Snapshots are whole-graph JSON. The graph is small (tens of nodes) and
    taken only on discrete user actions, never per frame, so the cost is
@@ -1335,7 +1600,11 @@ function undo(){
   if(b) b.disabled = undoStack.length === 0;
 }
 
-const EXAMPLE_LINE = '4 cutting machines, a buffer for 60 parts, 3 sewing machines, a buffer for 40 shirts, an inspection table, a buffer for 25 parts, a packing station';
+/* Deliberately industry-neutral wording. Prepare / Process / Inspect / Pack is
+   the shape of almost any line -- a food plant, a machine shop and a garment
+   unit all recognise it -- so nobody has to translate from someone else's
+   industry before they can read the result. */
+const EXAMPLE_LINE = '2 preparation stations at 40 seconds, a buffer for 50 items, 3 processing machines at 60 seconds, a buffer for 40 items, an inspection station at 35 seconds, a buffer for 25 items, a packing station at 25 seconds';
 function loadExample(){
   snapshot();
   graph.nodes.length = 0; graph.edges.length = 0;
@@ -1343,7 +1612,7 @@ function loadExample(){
   const stages = parseQuickStart(EXAMPLE_LINE);
   buildFromStages(stages, 140, canvasCenterY());
   autoComplete(); layoutGraph(); render();
-  toast('A garment line — press PLAY to see which station holds it up.');
+  toast('A typical line — press PLAY to see which step holds it up.');
 }
 
 function toast(msg){
@@ -1354,6 +1623,7 @@ function toast(msg){
 
 document.getElementById('playBtn').addEventListener('click', playClicked);
 document.getElementById('exampleBtn').addEventListener('click', loadExample);
+loadShelf(); renderShelf();
 document.getElementById('undoBtn').addEventListener('click', undo);
 document.getElementById('undoBtn').disabled = true;
 document.getElementById('quickstartBtn').addEventListener('click', runQuickStart);
