@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 300" width="880" height="300" role="img" aria-label="TwinOps — parts flowing through a factory line, with a bottleneck forming at the inspection station">
-<title>TwinOps — watch a factory line find its own bottleneck</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 300" width="880" height="300" role="img" aria-label="TwinOps — parts flowing through a production line, with a queue backing up at the inspection station that limits output">
+<title>TwinOps — watch a production line show you what limits its output</title>
 
 <defs>
   <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
@@ -110,7 +110,7 @@
         <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="2.4s" repeatCount="indefinite"/>
       </g>
     </g>
-    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Sewing 1</text>
+    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Machine 1</text>
     <text x="30" y="33" font-size="7" fill="#22c55e" font-family="'SFMono-Regular',Consolas,monospace">RUNNING</text>
   </g>
 
@@ -122,7 +122,7 @@
         <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="2.4s" begin="-0.8s" repeatCount="indefinite"/>
       </g>
     </g>
-    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Sewing 2</text>
+    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Machine 2</text>
     <text x="30" y="33" font-size="7" fill="#22c55e" font-family="'SFMono-Regular',Consolas,monospace">RUNNING</text>
   </g>
 
@@ -140,7 +140,7 @@
         <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="2.4s" begin="-1.6s" repeatCount="indefinite"/>
       </g>
     </g>
-    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Sewing 3</text>
+    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Machine 3</text>
     <text x="30" y="33" font-size="7" font-family="'SFMono-Regular',Consolas,monospace">
       <animate attributeName="fill" values="#22c55e;#22c55e;#f59e0b;#f59e0b;#22c55e" dur="8s" repeatCount="indefinite"/>
       RUNNING
@@ -183,7 +183,7 @@
     <text x="30" y="33" font-size="7" fill="#5b6478" font-family="'SFMono-Regular',Consolas,monospace">100% BUSY</text>
     <text x="47" y="-8" font-size="8" font-weight="700" text-anchor="middle" fill="#ef4444" opacity="0" font-family="'SFMono-Regular',Consolas,monospace">
       <animate attributeName="opacity" values="0;0;1;1;0" dur="8s" repeatCount="indefinite"/>
-      ▲ BOTTLENECK
+      ▲ LIMITING OUTPUT
     </text>
   </g>
 
@@ -199,6 +199,6 @@
 
 <!-- ── caption ─────────────────────────────────────────────── -->
 <text x="440" y="288" font-size="10.5" fill="#5b6478" text-anchor="middle" font-family="'SFMono-Regular',Consolas,monospace">
-  three lines feed one inspection station &#183; the queue backs up &#183; upstream blocks &#183; throughput dies
+  three machines feed one inspection station &#183; the queue backs up &#183; upstream blocks &#183; output falls
 </text>
 </svg>

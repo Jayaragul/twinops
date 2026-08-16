@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="docs/hero.svg" alt="TwinOps — three lines feed one inspection station, the queue backs up, upstream blocks, throughput dies" width="100%">
+<img src="docs/hero.svg" alt="TwinOps — three machines feed one inspection station, the queue backs up, upstream blocks, throughput dies" width="100%">
 
 <h1>TwinOps</h1>
 
-<p><b>Draw your factory. Press play. Watch the bottleneck appear.</b></p>
+<p><b>Draw your production line. Press play. See what's holding it back.</b></p>
 
 <p>
   <a href="https://jayaragul.github.io/twinops/"><b>▶ Open the Studio</b></a> ·
@@ -35,11 +35,11 @@ buying a second machine is expensive and being wrong is worse.
 2. Describe your line in plain English, upload a spreadsheet, or drag the pieces around.
 3. Press **PLAY**.
 
-Your factory runs. Buffers fill and drain. Machines turn amber when they're blocked
-and blue when they're starved. The station that's actually constraining you gets a
-red ring around it and a sentence in plain English telling you what to do about it.
+Your line runs. Buffers fill and drain. Machines turn amber when they're blocked and
+blue when they're starved. The station that's actually limiting your output gets a red
+ring around it, and a sentence in plain English tells you what to do about it.
 
-> ⚠️ **Inspection Table** is your bottleneck — busy 100% of the time and rarely waiting
+> ⚠️ **Inspection** is limiting your output — busy 100% of the time and rarely waiting
 > for parts. Adding capacity here helps the most; a bigger buffer in front of it will not.
 
 That last part matters. Most people's instinct is to add storage in front of a
@@ -62,7 +62,7 @@ Reproduce it yourself with `python examples/build_in_python.py`.
 **Type it.** Describe the line the way you'd say it out loud:
 
 ```
-3 sewing machines, a buffer for 50 shirts, an inspection table
+3 milling machines, a buffer for 50 parts, an inspection station
 ```
 
 TwinOps parses the quantities, builds the nodes, and wires one shared intake into
@@ -122,10 +122,10 @@ before you pick this:
 | [SimPy](https://simpy.readthedocs.io/), [Salabim](https://www.salabim.org/), [Ciw](https://ciw.readthedocs.io/) | ✓ | ✗ | ✗ | Excellent Python libraries. You write the model in code. |
 | **TwinOps** | ✓ | ✓ | ✓ | Runs in a browser tab. Share it as a link. Smaller feature set than any of the above. |
 
-So no, TwinOps is not the first no-code factory simulator, and anyone claiming that
-hasn't looked. What's genuinely missing from that table is the **intersection**: free,
-open source, nothing to install, no code, and shareable as a URL. That's the corner
-TwinOps sits in, and it earns its place in exactly one situation —
+So no, TwinOps is not the first no-code production-line simulator, and anyone claiming
+that hasn't looked. What's genuinely missing from that table is the **intersection**:
+free, open source, nothing to install, no code, and shareable as a URL. That's the
+corner TwinOps sits in, and it earns its place in exactly one situation —
 
 > Someone asks *"would a second machine here help?"* and you want a defensible answer
 > in the next five minutes, on a floor tablet or a locked-down work laptop where you
@@ -147,8 +147,8 @@ The Studio is a friendly face on an ordinary, well-behaved discrete-event simula
 - **Pull-with-blocking material flow.** A station pulls work when free, **blocks** when
   the next buffer is full, **starves** when its own is empty. Blocked and starved time
   are measured directly rather than inferred, which is precisely why the report can
-  *name* your bottleneck instead of showing you utilisation numbers and leaving you to
-  work it out.
+  *name* your limiting station instead of showing you utilisation numbers and leaving
+  you to work it out.
 - **Deterministic.** Same seed, same run, every time. Essential when you're comparing
   two scenarios rather than admiring an animation.
 - **Rendering is a consumer, never a prerequisite.** The visual layer subscribes to the
@@ -221,7 +221,7 @@ pip install -e ".[dev]" && pytest -q     # 30 tests
 ```
 
 Tests cover the object tree, event ordering, **material conservation** (nothing is
-created or lost), backpressure, determinism, parallel fairness, bottleneck detection,
+created or lost), backpressure, determinism, parallel fairness, constraint detection,
 and the file format.
 
 ---
@@ -238,8 +238,9 @@ are scoped deliberately small.
 - **Shift patterns and breaks.** Real lines stop for lunch. Nothing models that yet, and
   it changes every number on the report.
 - **Changeover / setup time.** Switching a machine from product A to product B costs
-  time. Common in textiles, entirely missing here.
-- **Batch processing.** Ovens and dye baths process 50 units at once, not one at a time.
+  time — tool changes, die swaps, cleaning. Entirely missing here.
+- **Batch processing.** Ovens, curing racks and plating tanks process 50 units at once,
+  not one at a time.
 - **Excel import** (`.xlsx`) alongside the existing CSV path.
 - **Share a layout by URL** — encode the model in the fragment so a link reproduces it.
 - **Cost modelling.** Throughput is only half the argument; managers ask about money.
@@ -247,7 +248,7 @@ are scoped deliberately small.
 **Bigger swings**
 
 - **Live data.** Read OPC-UA or MQTT so the twin tracks the real floor instead of a guess.
-- **Optimiser.** Given a budget, search layouts for the best throughput per rupee.
+- **Optimiser.** Given a budget, search layouts for the best throughput per unit spent.
 - **Better plain-English parsing.** The current parser is regex-based and easily fooled.
 - **Validation against a real line.** *The single most valuable contribution anyone
   could make.* If you have real throughput data, model it and tell us where the

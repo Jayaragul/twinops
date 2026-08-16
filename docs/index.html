@@ -49,7 +49,7 @@ select.durSel{background:var(--panel2);border:1px solid var(--border-strong);col
 .spacer{flex:1;}
 
 .stage-outer{flex:1;position:relative;overflow:hidden;}
-svg#canvas{width:100%;height:100%;display:block;cursor:default;}
+svg#canvas{width:100%;height:100%;display:block;cursor:default;touch-action:none;}
 .grid-fade{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%, transparent 40%, var(--bg) 92%);}
 
 .node-card rect.card{fill:var(--panel2);stroke:var(--border-strong);stroke-width:1.6;transition:stroke .2s,filter .2s;}
@@ -61,6 +61,8 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;}
 .node-card .stat-label{font-family:var(--mono);fill:var(--text-dim);font-size:9px;pointer-events:none;}
 .node-card .auto-badge{font-family:var(--mono);fill:var(--text-dim);font-size:8px;font-style:italic;}
 .port{fill:var(--panel3);stroke:var(--border-strong);stroke-width:1.4;cursor:crosshair;}
+.port{r:5;}
+@media (pointer:coarse){.port{r:9;stroke-width:2;}}
 .port:hover{fill:var(--accent);stroke:var(--accent);}
 .port.hot{fill:var(--accent);stroke:var(--accent);r:7;}
 .gear{transform-origin:center;transform-box:fill-box;}
@@ -93,6 +95,9 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;}
 .welcome.hidden{display:none;}
 .welcome .big{font-size:16px;color:var(--text);margin-bottom:6px;}
 .welcome .small{font-size:12.5px;line-height:1.6;}
+.welcome-cta{pointer-events:auto;margin-top:10px;cursor:pointer;}
+.btn:disabled{opacity:.35;cursor:default;}
+.btn:disabled:hover{border-color:var(--border-strong);color:var(--text);}
 
 .legend{position:absolute;bottom:16px;left:16px;display:flex;gap:14px;font-family:var(--mono);font-size:10.5px;color:var(--text-dim);background:rgba(13,17,32,.85);padding:8px 12px;border-radius:8px;border:1px solid var(--border);}
 .legend .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;}
@@ -167,6 +172,7 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;}
       <button class="btn primary" id="quickstartBtn">Build it</button>
       <button class="btn" id="csvBtn">Upload spreadsheet</button>
       <input type="file" id="csvFile" accept=".csv" hidden>
+      <button class="btn ghost" id="undoBtn" title="Undo (Ctrl+Z)">&#8630; Undo</button>
       <button class="btn ghost" id="clearBtn">Clear canvas</button>
       <div class="spacer"></div>
       <select class="durSel" id="runFor">
@@ -184,7 +190,9 @@ svg#canvas{width:100%;height:100%;display:block;cursor:default;}
 
       <div class="welcome" id="welcome">
         <div class="big">Your factory floor starts empty.</div>
-        <div class="small">Drag pieces from the left onto the grid, or just type what you have above and click Build it.</div>
+        <div class="small">Drag pieces from the left onto the grid, or describe your line up top and click <b>Build it</b>.</div>
+        <div class="small" style="margin-top:14px">Never used this before?</div>
+        <button class="btn primary welcome-cta" id="exampleBtn">Show me an example &rarr;</button>
       </div>
 
       <div class="inspector hidden" id="inspector"></div>
@@ -731,6 +739,7 @@ function runQuickStart(){
   if(!text){ toast('Type a short description first, e.g. "3 sewing machines, a buffer for 50 shirts"'); return; }
   const stages = parseQuickStart(text);
   if(!stages.length){ toast("Couldn't find any machines or buffers in that — try naming them plainly."); return; }
+  snapshot();
   buildFromStages(stages, 140, canvasCenterY());
   autoComplete();
   layoutGraph();
@@ -918,22 +927,47 @@ function initSvg(){
 function applyPan(){ if(viewport) viewport.setAttribute('transform',`translate(${panX},${panY})`); }
 
 const nodeEls = new Map();
+const edgeEls = new Map();          // edge id -> <path>, so dragging can patch
+const edgesTouching = new Map();    // node id -> [edge, ...]
 
 function edgePath(from, to){
   const x1=from.x, y1=from.y, x2=to.x, y2=to.y, mx=(x1+x2)/2;
   return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
 }
 
+/* Move one node without rebuilding the scene.
+   render() tears the whole SVG down and recreates every element; doing that on
+   each mousemove costs O(nodes) and gets visibly choppy on a tablet once a
+   plant grows past ~50 stations. Dragging only ever changes one transform and
+   the handful of edges attached to it, so patch exactly those. */
+function moveNodeLive(n){
+  const els = nodeEls.get(n.id);
+  if(els) els.g.setAttribute('transform', `translate(${n.x},${n.y})`);
+  for(const e of (edgesTouching.get(n.id) || [])){
+    const path = edgeEls.get(e.id);
+    if(!path) continue;
+    const from = nodeById(e.from), to = nodeById(e.to);
+    if(!from || !to) continue;
+    const p1 = portsFor(from).out, p2 = portsFor(to).in;
+    if(p1 && p2) path.setAttribute('d', edgePath(p1, p2));
+  }
+}
+
 function render(){
   initSvg();
   document.getElementById('welcome').classList.toggle('hidden', graph.nodes.length>0);
 
+  edgeEls.clear(); edgesTouching.clear();
   graph.edges.forEach(e=>{
     const from=nodeById(e.from), to=nodeById(e.to);
     if(!from||!to) return;
     const p1=portsFor(from).out, p2=portsFor(to).in;
     if(!p1||!p2) return;
-    el('path',{class:'edge-path','data-edge':e.id, d:edgePath(p1,p2)}, edgeLayer);
+    edgeEls.set(e.id, el('path',{class:'edge-path','data-edge':e.id, d:edgePath(p1,p2)}, edgeLayer));
+    for(const id of [e.from, e.to]){
+      if(!edgesTouching.has(id)) edgesTouching.set(id, []);
+      edgesTouching.get(id).push(e);
+    }
   });
 
   nodeEls.clear();
@@ -961,7 +995,7 @@ function render(){
       makePorts(g,n);
       nodeEls.set(n.id,{g,icon,stat,type:n.type});
     }
-    g.addEventListener('mousedown', ev=>onNodeMouseDown(ev,n));
+    g.addEventListener('pointerdown', ev=>onNodeMouseDown(ev,n));
   });
 
   renderInspector();
@@ -971,10 +1005,10 @@ function render(){
 function makePorts(g, n){
   const ports = portsFor(n);
   const h = n.type==='Buffer'?BUF_H:CARD_H, w = n.type==='Buffer'?BUF_W:CARD_W;
-  if(ports.in) el('circle',{class:'port','data-role':'in',cx:0,cy:h/2,r:5},g).addEventListener('mouseup',ev=>onPortMouseUp(ev,n,'in'));
+  if(ports.in) el('circle',{class:'port','data-role':'in',cx:0,cy:h/2,r:5},g).addEventListener('pointerup',ev=>onPortMouseUp(ev,n,'in'));
   if(ports.out){
     const outEl = el('circle',{class:'port','data-role':'out',cx:w,cy:h/2,r:5},g);
-    outEl.addEventListener('mousedown', ev=>{ ev.stopPropagation(); startConnect(n); });
+    outEl.addEventListener('pointerdown', ev=>{ ev.stopPropagation(); startConnect(n); });
   }
 }
 
@@ -1010,7 +1044,7 @@ function renderInspector(){
     ${n.auto ? '<div class="auto-note">We added this automatically so material has somewhere to flow. Edit it or delete it freely.</div>' : ''}
   `;
   document.getElementById('f-name').addEventListener('input', e=>{ n.name=e.target.value; updateNodeLabel(n); });
-  document.getElementById('f-del').addEventListener('click', ()=>{ removeNode(n.id); selectedId=null; render(); });
+  document.getElementById('f-del').addEventListener('click', ()=>{ snapshot(); removeNode(n.id); selectedId=null; render(); });
   if(n.type==='Machine'){
     document.getElementById('f-cycle').addEventListener('input', e=>{ n.props.cycleTime = (parseFloat(e.target.value)||1) * parseFloat(document.getElementById('f-cycleUnit').value); });
     document.getElementById('f-cycleUnit').addEventListener('change', e=>{ n.props.cycleTime = (parseFloat(document.getElementById('f-cycle').value)||1) * parseFloat(e.target.value); });
@@ -1060,29 +1094,50 @@ function onPortMouseUp(ev, n, role){
     connect(connecting.id, n.id);
   }
 }
-svg.addEventListener('mousemove', ev=>{
+/* Model updates synchronously; the DOM write is coalesced to one frame.
+   Pointer events fire faster than the screen refreshes, so batching the draw
+   avoids pointless layout work. The *position* is still applied immediately --
+   putting it inside the frame callback would lose the drag entirely whenever
+   requestAnimationFrame is throttled (background tab, battery saver), and the
+   node would snap back on release. */
+let framePending = false, pendingPoint = null;
+function scheduleFrame(){
+  if(framePending) return;
+  framePending = true;
+  requestAnimationFrame(()=>{
+    framePending = false;
+    if(dragNode) moveNodeLive(dragNode);
+    else if(connecting && rubberEl && pendingPoint){
+      rubberEl.setAttribute('d', edgePath(portsFor(connecting).out, pendingPoint));
+    }
+  });
+}
+
+svg.addEventListener('pointermove', ev=>{
   if(panning){
     panX = panStart.x + (ev.clientX-panMouseStart.x);
     panY = panStart.y + (ev.clientY-panMouseStart.y);
     applyPan();
     return;
   }
-  const p = svgPoint(ev);
-  if(dragNode){
-    dragNode.x = p.x-dragOffset.dx; dragNode.y = p.y-dragOffset.dy;
-    render();
-    selectNode(dragNode.id);
-  } else if(connecting && rubberEl){
-    const out = portsFor(connecting).out;
-    rubberEl.setAttribute('d', edgePath(out, p));
+  if(!dragNode && !connecting) return;
+  pendingPoint = svgPoint(ev);
+  if(dragNode){                       // keep the model current, always
+    dragNode.x = pendingPoint.x - dragOffset.dx;
+    dragNode.y = pendingPoint.y - dragOffset.dy;
   }
+  scheduleFrame();
 });
-svg.addEventListener('mouseup', ()=>{
-  dragNode=null; panning=false; svg.style.cursor='default';
+function endPointer(){
+  if(dragNode){ dragNode=null; render(); }   // one full render to settle z-order
+  panning=false; svg.style.cursor='default';
   if(connecting){ if(rubberEl) rubberEl.remove(); connecting=null; rubberEl=null; }
-});
-svg.addEventListener('mouseleave', ()=>{ panning=false; svg.style.cursor='default'; });
-svg.addEventListener('mousedown', ev=>{
+  pendingPoint=null;
+}
+svg.addEventListener('pointerup', endPointer);
+svg.addEventListener('pointercancel', endPointer);
+svg.addEventListener('pointerleave', ()=>{ panning=false; svg.style.cursor='default'; });
+svg.addEventListener('pointerdown', ev=>{
   if(ev.target===svg || ev.target.tagName==='rect'){
     selectedId=null; renderInspector(); document.querySelectorAll('.node-card.selected').forEach(e=>e.classList.remove('selected'));
     if(mode==='edit'){ panning=true; panMouseStart={x:ev.clientX,y:ev.clientY}; panStart={x:panX,y:panY}; svg.style.cursor='grabbing'; }
@@ -1090,7 +1145,10 @@ svg.addEventListener('mousedown', ev=>{
 });
 document.addEventListener('keydown', ev=>{
   if((ev.key==='Delete'||ev.key==='Backspace') && selectedId && mode==='edit' && document.activeElement.tagName!=='INPUT'){
-    removeNode(selectedId); selectedId=null; render();
+    snapshot(); removeNode(selectedId); selectedId=null; render();
+  }
+  if((ev.ctrlKey||ev.metaKey) && ev.key.toLowerCase()==='z' && mode==='edit' && document.activeElement.tagName!=='INPUT'){
+    ev.preventDefault(); undo();
   }
 });
 
@@ -1106,6 +1164,7 @@ stageOuter.addEventListener('drop', ev=>{
   const type = ev.dataTransfer.getData('text/plain');
   if(!type) return;
   const r = svg.getBoundingClientRect();
+  snapshot();
   addNode(type, ev.clientX-r.left-panX-CARD_W/2, ev.clientY-r.top-panY-CARD_H/2);
   render();
 });
@@ -1252,6 +1311,41 @@ function backToEdit(){
   document.getElementById('reportDrawer').classList.add('hidden');
   render();
 }
+/* ---- undo ----------------------------------------------------------
+   Snapshots are whole-graph JSON. The graph is small (tens of nodes) and
+   taken only on discrete user actions, never per frame, so the cost is
+   irrelevant next to being able to undo a mis-drag. */
+const undoStack = [];
+function snapshot(){
+  undoStack.push(JSON.stringify({nodes:graph.nodes, edges:graph.edges}));
+  if(undoStack.length > 50) undoStack.shift();
+  const b = document.getElementById('undoBtn');
+  if(b) b.disabled = false;
+}
+function undo(){
+  const prev = undoStack.pop();
+  if(!prev){ toast('Nothing to undo.'); return; }
+  const saved = JSON.parse(prev);
+  graph.nodes.length = 0; graph.edges.length = 0;
+  saved.nodes.forEach(n=>graph.nodes.push(n));
+  saved.edges.forEach(e=>graph.edges.push(e));
+  selectedId = null;
+  render();
+  const b = document.getElementById('undoBtn');
+  if(b) b.disabled = undoStack.length === 0;
+}
+
+const EXAMPLE_LINE = '4 cutting machines, a buffer for 60 parts, 3 sewing machines, a buffer for 40 shirts, an inspection table, a buffer for 25 parts, a packing station';
+function loadExample(){
+  snapshot();
+  graph.nodes.length = 0; graph.edges.length = 0;
+  document.getElementById('quickstart').value = EXAMPLE_LINE;
+  const stages = parseQuickStart(EXAMPLE_LINE);
+  buildFromStages(stages, 140, canvasCenterY());
+  autoComplete(); layoutGraph(); render();
+  toast('A garment line — press PLAY to see which station holds it up.');
+}
+
 function toast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
@@ -1259,6 +1353,9 @@ function toast(msg){
 }
 
 document.getElementById('playBtn').addEventListener('click', playClicked);
+document.getElementById('exampleBtn').addEventListener('click', loadExample);
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('undoBtn').disabled = true;
 document.getElementById('quickstartBtn').addEventListener('click', runQuickStart);
 document.getElementById('quickstart').addEventListener('keydown', e=>{ if(e.key==='Enter') runQuickStart(); });
 document.getElementById('csvBtn').addEventListener('click', ()=>document.getElementById('csvFile').click());
@@ -1270,7 +1367,8 @@ document.getElementById('csvFile').addEventListener('change', e=>{
   e.target.value='';
 });
 document.getElementById('clearBtn').addEventListener('click', ()=>{
-  graph.nodes=[]; graph.edges=[]; selectedId=null; localStorage.removeItem('twinops_studio');
+  if(graph.nodes.length) snapshot();
+  graph.nodes.length=0; graph.edges.length=0; selectedId=null; localStorage.removeItem('twinops_studio');
   render();
 });
 document.getElementById('editBtn').addEventListener('click', backToEdit);
