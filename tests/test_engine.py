@@ -286,3 +286,48 @@ connections:
 """
     with pytest.raises(TwinFormatError, match="material moves through Buffers"):
         loads(bad)
+
+
+# --------------------------------------------------------------------- ui
+
+def test_recorder_captures_a_replayable_event_log():
+    from twinforge.ui import Recorder, export_layout
+
+    root = loads(TWIN)
+    recorder = Recorder(root)          # must attach before the engine binds
+    eng = SimulationEngine(root, seed=1)
+    eng.run(HOUR)
+
+    events = recorder.timeline()
+    assert events, "a hidden hour of simulation should produce events"
+    assert all(events[i]["t"] <= events[i + 1]["t"] for i in range(len(events) - 1))
+
+    kinds = {e["type"] for e in events}
+    assert "cycle_started" in kinds
+    assert "received" in kinds and "released" in kinds
+
+    layout = export_layout(root)
+    node_paths = {n["path"] for n in layout["nodes"]}
+    assert {e["path"] for e in events} <= node_paths
+    assert any(e["type"] == "completed" for e in events)
+
+
+def test_ui_render_produces_self_contained_html():
+    from twinforge.ui import Recorder, export_layout, render
+
+    root = loads(TWIN)
+    recorder = Recorder(root)
+    eng = SimulationEngine(root, seed=1)
+    eng.run(HOUR)
+
+    payload = {
+        "meta": {"name": root.name, "duration": HOUR, "seed": 1},
+        "layout": export_layout(root),
+        "events": recorder.timeline(),
+        "report": analyse(eng).to_dict(),
+    }
+    html = render(payload, title="Tiny — Replay")
+    assert "<svg" in html
+    assert "Tiny" in html
+    assert '"nodes"' in html and '"events"' in html
+    assert "<script>" in html and "</html>" in html

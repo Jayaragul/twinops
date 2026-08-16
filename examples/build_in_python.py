@@ -5,7 +5,14 @@ buffer in front of it? Run with:  python examples/build_in_python.py
 """
 
 from twinforge import (
-    Area, Buffer, Factory, Machine, Sink, SimulationEngine, Source, analyse,
+    Area,
+    Buffer,
+    Factory,
+    Machine,
+    SimulationEngine,
+    Sink,
+    Source,
+    analyse,
 )
 from twinforge.sim import HOUR
 

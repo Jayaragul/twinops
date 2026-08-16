@@ -11,6 +11,7 @@ from . import __version__
 from .analytics import analyse, set_ascii
 from .sim import SimulationEngine, duration, fmt_time
 from .twinfile import TwinFormatError, load
+from .ui import Recorder, export_layout, write_and_open
 
 # Windows consoles default to a legacy code page that cannot encode box-drawing
 # characters. Try UTF-8 first; fall back to ASCII glyphs if that is impossible.
@@ -113,6 +114,35 @@ def cmd_sweep(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ui(args: argparse.Namespace) -> int:
+    twin_path = Path(args.twin)
+    root = load(twin_path)
+    recorder = Recorder(root)              # must attach before the engine binds
+    engine = SimulationEngine(root, seed=args.seed)
+    horizon = duration(args.duration)
+
+    if not args.quiet:
+        print(f"▶ simulating {root.name} for {fmt_time(horizon)}"
+              f"  (seed={args.seed})", file=sys.stderr)
+
+    engine.run(horizon)
+    report = analyse(engine)
+
+    payload = {
+        "meta": {"name": root.name, "duration": horizon, "seed": args.seed},
+        "layout": export_layout(root),
+        "events": recorder.timeline(),
+        "report": report.to_dict(),
+    }
+
+    out_path = Path(args.output) if args.output else twin_path.with_name(f"{twin_path.stem}.replay.html")
+    write_and_open(payload, out_path, title=f"{root.name} — TwinForge Replay", open_browser=not args.no_open)
+
+    if not args.quiet:
+        print(f"wrote {out_path}", file=sys.stderr)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="twin",
@@ -142,6 +172,15 @@ def build_parser() -> argparse.ArgumentParser:
     sweep.add_argument("--runs", type=int, default=10)
     sweep.add_argument("--seed", type=int, default=1)
     sweep.set_defaults(func=cmd_sweep)
+
+    ui = sub.add_parser("ui", help="simulate and open an interactive HTML replay")
+    ui.add_argument("twin")
+    ui.add_argument("--for", "--duration", dest="duration", default="8h")
+    ui.add_argument("--seed", type=int, default=1)
+    ui.add_argument("-o", "--output", help="path for the generated HTML file")
+    ui.add_argument("--no-open", action="store_true", help="don't launch a browser")
+    ui.add_argument("-q", "--quiet", action="store_true")
+    ui.set_defaults(func=cmd_ui)
 
     return p
 

@@ -186,7 +186,26 @@ twin show  examples/line_a.twin            # print the object tree
 twin run   examples/line_a.twin --for 8h   # simulate and report
 twin run   examples/line_a.twin --json -o out.json
 twin sweep examples/line_a.twin --runs 20  # variance across seeds
+twin ui    examples/line_a.twin --for 8h   # interactive HTML replay
 ```
+
+### Interactive replay (`twin ui`)
+
+Simulates the twin, then opens a self-contained HTML page — a flow diagram of
+the whole factory with a scrubber and play button, so you can watch the run
+happen: buffers filling and draining, machines flipping between running,
+blocked, starved and down, the bottleneck lit up the moment it starts
+constraining the line.
+
+No server. No external JS. The file is one `~1MB` HTML document with the full
+event log embedded, so it opens offline and you can hand it to someone else —
+a judge, a teammate — as a single file.
+
+It works by *listening*, not by changing the engine: `Recorder` connects to
+the same signals described above (`cycle_started`, `blocked`, `received`, …)
+and logs every transition with a timestamp. The engine has no idea a UI is
+watching, which is the whole point — rendering is a consumer of the model,
+never a prerequisite for it.
 
 `sweep` is the one people underestimate. A single run of a stochastic model is
 an anecdote:
