@@ -21,11 +21,15 @@ class Signal:
         machine.cycle_completed.connect(conveyor.receive)
     """
 
-    __slots__ = ("name", "_handlers")
+    __slots__ = ("name", "_handlers", "_rotate", "_cursor")
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, rotate: bool = False) -> None:
         self.name = name
         self._handlers: list[Callable[..., Any]] = []
+        #: Rotate handler order on each emit. Needed where several consumers
+        #: compete for one resource -- see :meth:`emit`.
+        self._rotate = rotate
+        self._cursor = 0
 
     def connect(self, handler: Callable[..., Any]) -> Callable[..., Any]:
         if handler not in self._handlers:
@@ -38,7 +42,16 @@ class Signal:
 
     def emit(self, *args: Any, **kwargs: Any) -> None:
         # iterate a copy: a handler may disconnect itself while firing
-        for handler in list(self._handlers):
+        handlers = list(self._handlers)
+        if self._rotate and handlers:
+            # Fixed order would permanently starve every consumer but the first.
+            # Two identical machines pulling from one buffer race for each part,
+            # and whoever connected first always wins -- one runs flat out while
+            # the other idles. Rotating the starting point shares the work.
+            i = self._cursor % len(handlers)
+            handlers = handlers[i:] + handlers[:i]
+            self._cursor = (self._cursor + 1) % len(self._handlers)
+        for handler in handlers:
             handler(*args, **kwargs)
 
     def __len__(self) -> int:
@@ -124,11 +137,11 @@ class TwinObject:
 
     # ------------------------------------------------------------- signals
 
-    def signal(self, name: str) -> Signal:
+    def signal(self, name: str, rotate: bool = False) -> Signal:
         """Get or create a signal by name."""
         sig = self.signals.get(name)
         if sig is None:
-            sig = Signal(f"{self.name}.{name}")
+            sig = Signal(f"{self.name}.{name}", rotate=rotate)
             self.signals[name] = sig
         return sig
 

@@ -1,0 +1,6 @@
+name,type,quantity,cycle_time,capacity,connects_to
+Raw Material,Source,1,20s,,Cutting
+Cutting,Machine,2,60s,,Staging
+Staging,Buffer,1,,40,Welding
+Welding,Machine,1,90s,,Finished
+Finished,Sink,1,,,

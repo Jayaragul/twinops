@@ -2,7 +2,7 @@
 
 import pytest
 
-from twinforge import (
+from twinops import (
     Area,
     Buffer,
     Factory,
@@ -15,7 +15,7 @@ from twinforge import (
     duration,
     loads,
 )
-from twinforge.sim import HOUR, MINUTE
+from twinops.sim import HOUR, MINUTE
 
 # ------------------------------------------------------------------ core
 
@@ -168,6 +168,25 @@ def test_deep_line_does_not_recurse():
     assert sink.throughput > 0
 
 
+def test_parallel_machines_share_work_fairly():
+    """Identical machines on one buffer must not starve each other.
+
+    With fixed notification order the first-connected machine wins the race
+    for every part, so it runs flat out while the others idle.
+    """
+    b_in, b_out = Buffer("In", capacity=20), Buffer("Out", capacity=500)
+    machines = [Machine(f"M{i}", cycle_time="45s").fed_by(b_in).feeds(b_out) for i in range(3)]
+    root = Factory("F").add(Area("L").add(
+        b_in, b_out, Source("Src", interval="15s").feeds(b_in),
+        *machines, Sink("Done").fed_by(b_out),
+    ))
+    SimulationEngine(root, seed=1).run(4 * HOUR)
+
+    counts = [m.processed for m in machines]
+    assert min(counts) > 0, "a machine was starved entirely"
+    assert max(counts) - min(counts) <= 2, f"work split unevenly: {counts}"
+
+
 def test_runs_are_reproducible_by_seed():
     def once(seed):
         root, sink, _ = _simple_line(cycle={"normal": {"mean": "10s", "sd": "3s"}})
@@ -266,13 +285,13 @@ def test_twin_file_round_trip_and_run():
 
 
 def test_unknown_type_is_reported_clearly():
-    from twinforge import TwinFormatError
+    from twinops import TwinFormatError
     with pytest.raises(TwinFormatError, match="unknown object type"):
         loads("version: 1\ntwin: {type: Warp_Drive, name: X}")
 
 
 def test_illegal_connection_is_rejected():
-    from twinforge import TwinFormatError
+    from twinops import TwinFormatError
     bad = """
 version: 1
 twin:
@@ -291,7 +310,7 @@ connections:
 # --------------------------------------------------------------------- ui
 
 def test_recorder_captures_a_replayable_event_log():
-    from twinforge.ui import Recorder, export_layout
+    from twinops.ui import Recorder, export_layout
 
     root = loads(TWIN)
     recorder = Recorder(root)          # must attach before the engine binds
@@ -313,7 +332,7 @@ def test_recorder_captures_a_replayable_event_log():
 
 
 def test_ui_render_produces_self_contained_html():
-    from twinforge.ui import Recorder, export_layout, render
+    from twinops.ui import Recorder, export_layout, render
 
     root = loads(TWIN)
     recorder = Recorder(root)

@@ -1,0 +1,204 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 300" width="880" height="300" role="img" aria-label="TwinOps — parts flowing through a factory line, with a bottleneck forming at the inspection station">
+<title>TwinOps — watch a factory line find its own bottleneck</title>
+
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#070b16"/>
+    <stop offset="100%" stop-color="#05070f"/>
+  </linearGradient>
+  <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+    <circle cx="1.1" cy="1.1" r="1.1" fill="#ffffff" opacity="0.055"/>
+  </pattern>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#2f3752"/>
+  </marker>
+  <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="3.2" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<rect width="880" height="300" fill="url(#sky)"/>
+<rect width="880" height="300" fill="url(#dots)"/>
+
+<!-- ── wordmark ─────────────────────────────────────────────── -->
+<g font-family="'Segoe UI',system-ui,-apple-system,sans-serif">
+  <text x="40" y="52" font-size="30" font-weight="700" fill="#e7ebf5" letter-spacing="-0.4">TwinOps</text>
+  <text x="181" y="52" font-size="10.5" font-weight="600" fill="#00c2d1" letter-spacing="2.4" font-family="'SFMono-Regular',Consolas,monospace">STUDIO</text>
+  <text x="40" y="74" font-size="13" fill="#8791ab">Draw your factory. Press play. Watch the bottleneck appear.</text>
+</g>
+
+<!-- ── flow connections ─────────────────────────────────────── -->
+<g stroke="#2f3752" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+  <path d="M158,190 C186,190 186,190 210,190"/>
+  <path d="M266,190 C296,160 300,140 330,140"/>
+  <path d="M266,190 C296,190 300,190 330,190"/>
+  <path d="M266,190 C296,220 300,240 330,240"/>
+  <path d="M424,140 C452,140 456,178 486,186"/>
+  <path d="M424,190 C452,190 456,188 486,190"/>
+  <path d="M424,240 C452,240 456,202 486,194"/>
+  <path d="M534,190 C560,190 566,190 596,190"/>
+  <path d="M690,190 C716,190 722,190 750,190"/>
+</g>
+
+<!-- ── parts in motion ──────────────────────────────────────── -->
+<g fill="#00c2d1" filter="url(#glow)">
+  <circle r="3.4">
+    <animateMotion dur="2.6s" repeatCount="indefinite"
+      path="M158,190 C186,190 186,190 210,190 L266,190 C296,160 300,140 330,140"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2.6s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3.4">
+    <animateMotion dur="2.6s" begin="0.85s" repeatCount="indefinite"
+      path="M158,190 C186,190 186,190 210,190 L266,190 C296,190 300,190 330,190"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="0.85s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3.4">
+    <animateMotion dur="2.6s" begin="1.7s" repeatCount="indefinite"
+      path="M158,190 C186,190 186,190 210,190 L266,190 C296,220 300,240 330,240"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="1.7s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- converging on the constraint: three lines, one inspection station -->
+  <circle r="3.4">
+    <animateMotion dur="2.2s" begin="1.2s" repeatCount="indefinite" path="M424,140 C452,140 456,178 486,186"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2.2s" begin="1.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3.4">
+    <animateMotion dur="2.2s" begin="1.9s" repeatCount="indefinite" path="M424,190 C452,190 456,188 486,190"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2.2s" begin="1.9s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="3.4">
+    <animateMotion dur="2.2s" begin="2.6s" repeatCount="indefinite" path="M424,240 C452,240 456,202 486,194"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="2.2s" begin="2.6s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- past the constraint the stream thins out: that IS the lost throughput -->
+  <circle r="3.4">
+    <animateMotion dur="3.4s" begin="2.4s" repeatCount="indefinite" path="M534,190 C560,190 566,190 596,190 L690,190 C716,190 722,190 750,190"/>
+    <animate attributeName="opacity" values="0;1;1;0" dur="3.4s" begin="2.4s" repeatCount="indefinite"/>
+  </circle>
+</g>
+
+<g font-family="'Segoe UI',system-ui,sans-serif">
+
+  <!-- intake -->
+  <g transform="translate(96,168)">
+    <rect x="0" y="0" width="62" height="44" rx="7" fill="#121830" stroke="#2f3752" stroke-width="1.5"/>
+    <circle cx="15" cy="16" r="6.5" fill="none" stroke="#00c2d1" stroke-width="1.5"/>
+    <path d="M12,12 L19,16 L12,20 Z" fill="#00c2d1"/>
+    <text x="27" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Intake</text>
+    <text x="9" y="34" font-size="7" fill="#5b6478" font-family="'SFMono-Regular',Consolas,monospace">SOURCE</text>
+  </g>
+
+  <!-- feed buffer, healthy: fill breathes up and down -->
+  <g transform="translate(210,150)">
+    <rect x="0" y="0" width="34" height="80" rx="4" fill="#182042" stroke="#2f3752" stroke-width="1.5"/>
+    <rect x="2" width="30" fill="#0a5d66">
+      <animate attributeName="height" values="18;34;22;30;18" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="60;44;56;48;60" dur="6s" repeatCount="indefinite"/>
+    </rect>
+    <text x="17" y="94" font-size="8.5" font-weight="600" fill="#e7ebf5" text-anchor="middle">Feed</text>
+  </g>
+
+  <!-- three parallel machines, gears turning -->
+  <g transform="translate(330,118)">
+    <rect x="0" y="0" width="94" height="44" rx="7" fill="#121830" stroke="#22c55e" stroke-width="1.5"/>
+    <g transform="translate(16,22)" fill="#22c55e">
+      <circle r="4.6" fill="none" stroke="#22c55e" stroke-width="1.8"/>
+      <g><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(60)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(120)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(180)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(240)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(300)"/>
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="2.4s" repeatCount="indefinite"/>
+      </g>
+    </g>
+    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Sewing 1</text>
+    <text x="30" y="33" font-size="7" fill="#22c55e" font-family="'SFMono-Regular',Consolas,monospace">RUNNING</text>
+  </g>
+
+  <g transform="translate(330,168)">
+    <rect x="0" y="0" width="94" height="44" rx="7" fill="#121830" stroke="#22c55e" stroke-width="1.5"/>
+    <g transform="translate(16,22)" fill="#22c55e">
+      <circle r="4.6" fill="none" stroke="#22c55e" stroke-width="1.8"/>
+      <g><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(60)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(120)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(180)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(240)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(300)"/>
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="2.4s" begin="-0.8s" repeatCount="indefinite"/>
+      </g>
+    </g>
+    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Sewing 2</text>
+    <text x="30" y="33" font-size="7" fill="#22c55e" font-family="'SFMono-Regular',Consolas,monospace">RUNNING</text>
+  </g>
+
+  <!-- third machine goes amber: blocked, waiting on the constraint downstream -->
+  <g transform="translate(330,218)">
+    <rect x="0" y="0" width="94" height="44" rx="7" fill="#121830" stroke-width="1.5">
+      <animate attributeName="stroke" values="#22c55e;#22c55e;#f59e0b;#f59e0b;#22c55e" dur="8s" repeatCount="indefinite"/>
+    </rect>
+    <g transform="translate(16,22)">
+      <circle r="4.6" fill="none" stroke-width="1.8">
+        <animate attributeName="stroke" values="#22c55e;#22c55e;#f59e0b;#f59e0b;#22c55e" dur="8s" repeatCount="indefinite"/>
+      </circle>
+      <g><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(60)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(120)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(180)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(240)"/><rect x="-1.1" y="-8.4" width="2.2" height="3" rx="0.6" transform="rotate(300)"/>
+        <animate attributeName="fill" values="#22c55e;#22c55e;#f59e0b;#f59e0b;#22c55e" dur="8s" repeatCount="indefinite"/>
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="2.4s" begin="-1.6s" repeatCount="indefinite"/>
+      </g>
+    </g>
+    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Sewing 3</text>
+    <text x="30" y="33" font-size="7" font-family="'SFMono-Regular',Consolas,monospace">
+      <animate attributeName="fill" values="#22c55e;#22c55e;#f59e0b;#f59e0b;#22c55e" dur="8s" repeatCount="indefinite"/>
+      RUNNING
+      <animate attributeName="opacity" values="1;1;0;0;1" dur="8s" repeatCount="indefinite"/>
+    </text>
+    <text x="30" y="33" font-size="7" fill="#f59e0b" font-family="'SFMono-Regular',Consolas,monospace" opacity="0">
+      BLOCKED
+      <animate attributeName="opacity" values="0;0;1;1;0" dur="8s" repeatCount="indefinite"/>
+    </text>
+  </g>
+
+  <!-- the buffer that saturates: this is the tell -->
+  <g transform="translate(486,150)">
+    <rect x="0" y="0" width="34" height="80" rx="4" fill="#182042" stroke-width="1.5">
+      <animate attributeName="stroke" values="#2f3752;#2f3752;#f59e0b;#f59e0b;#2f3752" dur="8s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="2" width="30">
+      <animate attributeName="height" values="12;40;76;76;12" dur="8s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="66;38;2;2;66" dur="8s" repeatCount="indefinite"/>
+      <animate attributeName="fill" values="#0a5d66;#0a5d66;#7a3b12;#7a3b12;#0a5d66" dur="8s" repeatCount="indefinite"/>
+    </rect>
+    <text x="17" y="94" font-size="8.5" font-weight="600" fill="#e7ebf5" text-anchor="middle">Queue</text>
+    <text x="17" y="105" font-size="7" text-anchor="middle" font-family="'SFMono-Regular',Consolas,monospace" fill="#5b6478">
+      <animate attributeName="fill" values="#5b6478;#5b6478;#f59e0b;#f59e0b;#5b6478" dur="8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;1;1;0" dur="8s" repeatCount="indefinite"/>
+      FULL
+    </text>
+  </g>
+
+  <!-- the constraint -->
+  <g transform="translate(596,168)">
+    <rect x="0" y="0" width="94" height="44" rx="7" fill="#121830" stroke="#2f3752" stroke-width="1.5">
+      <animate attributeName="stroke" values="#2f3752;#2f3752;#ef4444;#ef4444;#2f3752" dur="8s" repeatCount="indefinite"/>
+      <animate attributeName="stroke-width" values="1.5;1.5;2.2;2.2;1.5" dur="8s" repeatCount="indefinite"/>
+    </rect>
+    <circle cx="16" cy="22" r="4.6" fill="none" stroke="#8791ab" stroke-width="1.8">
+      <animate attributeName="stroke" values="#8791ab;#8791ab;#ef4444;#ef4444;#8791ab" dur="8s" repeatCount="indefinite"/>
+    </circle>
+    <text x="30" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Inspect</text>
+    <text x="30" y="33" font-size="7" fill="#5b6478" font-family="'SFMono-Regular',Consolas,monospace">100% BUSY</text>
+    <text x="47" y="-8" font-size="8" font-weight="700" text-anchor="middle" fill="#ef4444" opacity="0" font-family="'SFMono-Regular',Consolas,monospace">
+      <animate attributeName="opacity" values="0;0;1;1;0" dur="8s" repeatCount="indefinite"/>
+      ▲ BOTTLENECK
+    </text>
+  </g>
+
+  <!-- shipping -->
+  <g transform="translate(750,168)">
+    <rect x="0" y="0" width="62" height="44" rx="7" fill="#121830" stroke="#2f3752" stroke-width="1.5"/>
+    <circle cx="15" cy="16" r="6.5" fill="none" stroke="#00c2d1" stroke-width="1.5"/>
+    <path d="M11.5,16 L14.5,19.5 L19,12.5" fill="none" stroke="#00c2d1" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="26" y="20" font-size="9.5" font-weight="600" fill="#e7ebf5">Ship</text>
+    <text x="9" y="34" font-size="7" fill="#5b6478" font-family="'SFMono-Regular',Consolas,monospace">SINK</text>
+  </g>
+</g>
+
+<!-- ── caption ─────────────────────────────────────────────── -->
+<text x="440" y="288" font-size="10.5" fill="#5b6478" text-anchor="middle" font-family="'SFMono-Regular',Consolas,monospace">
+  three lines feed one inspection station &#183; the queue backs up &#183; upstream blocks &#183; throughput dies
+</text>
+</svg>

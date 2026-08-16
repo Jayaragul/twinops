@@ -136,7 +136,7 @@ def cmd_ui(args: argparse.Namespace) -> int:
     }
 
     out_path = Path(args.output) if args.output else twin_path.with_name(f"{twin_path.stem}.replay.html")
-    write_and_open(payload, out_path, title=f"{root.name} — TwinForge Replay", open_browser=not args.no_open)
+    write_and_open(payload, out_path, title=f"{root.name} — TwinOps Replay", open_browser=not args.no_open)
 
     if not args.quiet:
         print(f"wrote {out_path}", file=sys.stderr)
@@ -146,9 +146,9 @@ def cmd_ui(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="twin",
-        description="TwinForge — an engine for building and simulating industrial digital twins.",
+        description="TwinOps — an engine for building and simulating industrial digital twins.",
     )
-    p.add_argument("--version", action="version", version=f"twinforge {__version__}")
+    p.add_argument("--version", action="version", version=f"twinops {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="simulate a twin and report KPIs")

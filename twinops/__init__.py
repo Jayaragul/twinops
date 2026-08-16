@@ -1,9 +1,9 @@
-"""TwinForge — an engine for building, simulating and analysing digital twins.
+"""TwinOps — an engine for building, simulating and analysing digital twins.
 
 Quick start::
 
-    from twinforge import Factory, Area, Source, Machine, Buffer, Sink
-    from twinforge import SimulationEngine, analyse
+    from twinops import Factory, Area, Source, Machine, Buffer, Sink
+    from twinops import SimulationEngine, analyse
 
     line = Area("Line_A").add(
         Source("Intake", interval="20s").feeds(b1 := Buffer("B1", capacity=20)),

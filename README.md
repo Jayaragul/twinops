@@ -1,116 +1,193 @@
-# TwinForge
+<div align="center">
 
-**An engine for building, simulating and analysing industrial digital twins.**
+<img src="docs/hero.svg" alt="TwinOps — three lines feed one inspection station, the queue backs up, upstream blocks, throughput dies" width="100%">
 
-Godot gives you nodes, scenes and a scene tree, and people build wildly different
-games with them. TwinForge gives you the same idea with industrial primitives:
-compose a factory from objects in a tree, connect material flow, run it, and get
-the numbers back.
+<h1>TwinOps</h1>
 
-```bash
-pip install twinforge
-twin run examples/line_a.twin --for 8h
-```
+<p><b>Draw your factory. Press play. Watch the bottleneck appear.</b></p>
 
-```
-════════════════════════════════════════════════════════════════════════
-  SIMULATION REPORT     08:00:00 simulated     12,989 events
-════════════════════════════════════════════════════════════════════════
+<p>
+  <a href="https://jayaragul.github.io/twinops/"><b>▶ Open the Studio</b></a> ·
+  <a href="#the-60-second-version">60-second tour</a> ·
+  <a href="#feeding-it-your-own-data">Your own data</a> ·
+  <a href="#help-wanted">Contribute</a>
+</p>
 
-  Throughput               468 parts   (58.5/hr)
-  Created                  503 parts
-  Rejected at source       662 parts   (line backed up)
-  Avg lead time       00:31:26
-  Avg WIP                 30.3 parts
-  Bottleneck            CNC_02   (89% busy)
+<p>
+  <img alt="tests" src="https://img.shields.io/badge/tests-30%20passing-22c55e?style=flat-square">
+  <img alt="dependencies" src="https://img.shields.io/badge/runtime%20deps-1-00c2d1?style=flat-square">
+  <img alt="python" src="https://img.shields.io/badge/python-3.9%2B-3776ab?style=flat-square">
+  <img alt="licence" src="https://img.shields.io/badge/licence-MIT-8791ab?style=flat-square">
+</p>
 
-  STATION                 PROC     BUSY   BLOCKED   STARVED    DOWN  FAIL
-  ──────────────────────────────────────────────────────────────────────
-  CNC_01                   477   65.2%    20.9%      0.0%  12.0%   13
-  CNC_02                   468   89.1%     0.0%      2.0%   8.9%    5 ◀
-  Transfer                 468   19.5%     0.0%     80.5%   0.0%    0
-  Inspection               468   27.8%     0.0%     72.2%   0.0%    0
-
-  BUFFER                   AVG     PEAK   CAPACITY
-  ──────────────────────────────────────────────────────────────────────
-  Buffer_In                23.9       25         25  ← saturated
-  Buffer_Mid                6.4        8          8  ← saturated
-  Buffer_Xfer               0.0        1          6
-
-════════════════════════════════════════════════════════════════════════
-```
-
-Read that report and you already know the story: **CNC_02 is the constraint.**
-It is 89% busy and never starved, CNC_01 is blocked 20.9% of the time waiting to
-hand work over, the buffer between them is pinned at capacity, and everything
-downstream sits starved. Adding a third inspection station would achieve
-nothing. That is the kind of answer a twin is for.
+</div>
 
 ---
 
-## Why this exists
+## The 60-second version
 
-Most factory simulators are either €40,000 licences or 200-line scripts nobody
-can reuse. TwinForge aims at the gap: something an engineer can install in one
-command, describe a line in a readable file, and get a defensible answer from —
-while staying a real library you can build products on top of.
+You manage a line. You have a hunch that one station is holding everything up, but
+buying a second machine is expensive and being wrong is worse.
 
-- **No GUI required.** The engine runs headless. Ten thousand scenarios don't
-  render a single polygon.
-- **Readable model files.** A `.twin` file is YAML. Diff it, review it, generate it.
-- **Fast enough to sweep.** ~486,000 events/sec — a week of factory time in half
-  a second, a full 8-hour shift in 86 ms.
-- **Deterministic.** Same seed, same run, every time. Essential when you're
-  comparing scenarios rather than admiring animations.
+**TwinOps lets you test the hunch before you spend the money.**
 
-## Install
+1. Open [the Studio](https://jayaragul.github.io/twinops/) — nothing to install.
+2. Describe your line in plain English, upload a spreadsheet, or drag the pieces around.
+3. Press **PLAY**.
+
+Your factory runs. Buffers fill and drain. Machines turn amber when they're blocked
+and blue when they're starved. The station that's actually constraining you gets a
+red ring around it and a sentence in plain English telling you what to do about it.
+
+> ⚠️ **Inspection Table** is your bottleneck — busy 100% of the time and rarely waiting
+> for parts. Adding capacity here helps the most; a bigger buffer in front of it will not.
+
+That last part matters. Most people's instinct is to add storage in front of a
+struggling machine. **Buffers hide a constraint; they don't remove it.** TwinOps shows
+you the difference:
+
+| What you change | Parts per 8-hour shift |
+|---|---|
+| Baseline (1 slow machine, buffer of 5) | 563 |
+| Make the buffer 8× bigger (40) | 563 &nbsp;&nbsp;**+0.0%** |
+| Add a second machine | 1,136 &nbsp;&nbsp;**+101.7%** |
+
+Nothing about that is hardcoded — the engine derives it from first principles.
+Reproduce it yourself with `python examples/build_in_python.py`.
+
+---
+
+## Three ways in, no wrong answer
+
+**Type it.** Describe the line the way you'd say it out loud:
+
+```
+3 sewing machines, a buffer for 50 shirts, an inspection table
+```
+
+TwinOps parses the quantities, builds the nodes, and wires one shared intake into
+all three machines — the way a real floor is laid out.
+
+**Upload it.** Any CSV with recognisable column names. It accepts synonyms
+(`machine`/`station`/`name`, `duration`/`cycle_time`/`time`, `holds`/`capacity`),
+so your existing spreadsheet probably already works:
+
+```csv
+name,type,quantity,cycle_time,capacity,connects_to
+Raw Material,Source,1,20s,,Cutting
+Cutting,Machine,2,60s,,Staging
+Staging,Buffer,1,,40,Welding
+Welding,Machine,1,90s,,Finished
+Finished,Sink,1,,,
+```
+
+**Drag it.** Pull pieces from the palette onto the grid and draw lines between them.
+If you connect two machines directly, TwinOps quietly inserts the buffer the maths
+needs — you don't have to know that rule.
+
+Whichever way you start, you can edit everything afterwards.
+
+---
+
+## Feeding it your own data
+
+Four building blocks, and that's the whole vocabulary:
+
+| Piece | What it means on your floor |
+|---|---|
+| **Intake** | Where material arrives. Set how often a new part shows up. |
+| **Machine** | One step of work. Set how long a part takes; optionally, how often it breaks and how long repairs take. |
+| **Buffer** | A basket, rack, or bit of floor where parts wait. Set how many fit. **Its size is what causes blocking.** |
+| **Shipping** | Where finished goods leave. |
+
+Times are written the way you'd say them: `45s`, `2min`, `1.5h`. If a step varies,
+say so — `{normal: {mean: 40s, sd: 4s}}` — and the run reflects that variation.
+
+Every run is seeded, so the same seed replays identically. **"Try another day"**
+re-rolls the randomness so you can see whether yesterday's number was typical or a
+fluke, which is the difference between a real answer and an anecdote.
+
+---
+
+## Is this solving a real problem?
+
+Partly. Here's the honest map, because you should know what else is out there
+before you pick this:
+
+| Tool | Free | No install | No code | Notes |
+|---|:--:|:--:|:--:|---|
+| [Siemens Plant Simulation](https://www.siemens.com/en-us/products/tecnomatix/plant-simulation-software/), [AnyLogic](https://en.wikipedia.org/wiki/AnyLogic), [Arena](https://en.wikipedia.org/wiki/List_of_discrete_event_simulation_software) | ✗ | ✗ | ✓ | The serious tools. Far more capable than this. Licences and training to match. |
+| [SIMUL8 Cloud](https://www.simul8.com/) | ✗ | ✓ | ✓ | Genuinely browser-based and drag-and-drop. Commercial. |
+| [JaamSim](https://github.com/jaamsim/jaamsim) | ✓ | ✗ | ✓ | Free, open source, drag-and-drop, 3D, actively maintained. **If you can install a Java desktop app, look here first.** |
+| [SimPy](https://simpy.readthedocs.io/), [Salabim](https://www.salabim.org/), [Ciw](https://ciw.readthedocs.io/) | ✓ | ✗ | ✗ | Excellent Python libraries. You write the model in code. |
+| **TwinOps** | ✓ | ✓ | ✓ | Runs in a browser tab. Share it as a link. Smaller feature set than any of the above. |
+
+So no, TwinOps is not the first no-code factory simulator, and anyone claiming that
+hasn't looked. What's genuinely missing from that table is the **intersection**: free,
+open source, nothing to install, no code, and shareable as a URL. That's the corner
+TwinOps sits in, and it earns its place in exactly one situation —
+
+> Someone asks *"would a second machine here help?"* and you want a defensible answer
+> in the next five minutes, on a floor tablet or a locked-down work laptop where you
+> cannot install anything.
+
+If you need 3D, conveyor physics, AGV routing, or an audited model for a capital
+expenditure case, use one of the tools above. TwinOps is a fast first look, not a
+replacement for them.
+
+---
+
+## The maths underneath
+
+The Studio is a friendly face on an ordinary, well-behaved discrete-event simulation.
+
+- **Event-driven, not tick-driven.** Time jumps from event to event. An 8-hour shift
+  costs a few thousand events instead of 28,800 idle steps — comfortably 350,000+
+  events/sec on a laptop, so a full week of factory time runs in about a second.
+- **Pull-with-blocking material flow.** A station pulls work when free, **blocks** when
+  the next buffer is full, **starves** when its own is empty. Blocked and starved time
+  are measured directly rather than inferred, which is precisely why the report can
+  *name* your bottleneck instead of showing you utilisation numbers and leaving you to
+  work it out.
+- **Deterministic.** Same seed, same run, every time. Essential when you're comparing
+  two scenarios rather than admiring an animation.
+- **Rendering is a consumer, never a prerequisite.** The visual layer subscribes to the
+  engine's public signals (`cycle_started`, `blocked`, `received`, …) and replays them.
+  The engine has no idea a UI exists.
+
+Two bugs worth naming, since both are easy to ship by accident and neither is obvious:
+
+**Signal handlers must not do work directly.** A push cascades into a pull, which
+cascades into another push. Handle that synchronously and any realistic line
+recurses until the stack dies. Signals here only queue a zero-delay wake-up, turning
+recursion into iteration. There's a 60-station chain in the test suite that fails
+instantly on the naive design.
+
+**Fixed notification order silently starves parallel machines.** Two identical
+machines pulling from one buffer race for every part, and whoever subscribed first
+always wins — one runs at 92% while the other sits at 8%. Notification order rotates,
+and a test asserts three identical machines finish within 2 parts of each other.
+
+---
+
+## For developers
+
+The Studio needs no install. The Python package is for scripting, batch runs, and CI.
 
 ```bash
-pip install twinforge          # or: pip install -e .  from a clone
+pip install -e .
+
+twin show  examples/line_a.twin            # print the object tree
+twin run   examples/line_a.twin --for 8h   # simulate, report KPIs
+twin sweep examples/line_a.twin --runs 20  # variance across 20 seeds
+twin ui    examples/line_a.twin --for 8h   # standalone HTML replay you can email
 ```
 
-Python 3.9+. One dependency (PyYAML). No compiler, no toolchain.
-
-## Two ways to build a twin
-
-**In a file**, when you want something reviewable:
-
-```yaml
-version: 1
-twin:
-  type: Factory
-  name: Demo_Plant
-  children:
-    - type: Source
-      name: Raw_Intake
-      properties: {interval: {exponential: {mean: 25s}}}
-    - type: Buffer
-      name: Buffer_In
-      properties: {capacity: 25}
-    - type: Machine
-      name: CNC_01
-      properties:
-        cycle_time: {normal: {mean: 40s, sd: 4s}}
-        mtbf: 45min
-        mttr: {normal: {mean: 6min, sd: 90s}}
-    - type: Buffer
-      name: Buffer_Out
-      properties: {capacity: 50}
-    - type: Sink
-      name: Shipping
-
-connections:
-  - {from: Raw_Intake, to: Buffer_In}
-  - {from: Buffer_In,  to: CNC_01}
-  - {from: CNC_01,     to: Buffer_Out}
-  - {from: Buffer_Out, to: Shipping}
-```
-
-**In Python**, when you want to generate or parameterise it:
+Build a model in code when you want to generate or parameterise it:
 
 ```python
-from twinforge import Factory, Area, Source, Machine, Buffer, Sink
-from twinforge import SimulationEngine, analyse
+from twinops import Factory, Area, Source, Machine, Buffer, Sink
+from twinops import SimulationEngine, analyse
 
 b_in  = Buffer("Buffer_In", capacity=25)
 b_out = Buffer("Buffer_Out", capacity=50)
@@ -123,148 +200,70 @@ line = Area("Line_A").add(
     Sink("Shipping").fed_by(b_out),
 )
 
-engine = SimulationEngine(Factory("Demo_Plant").add(line), seed=1)
+engine = SimulationEngine(Factory("Demo").add(line), seed=1)
 engine.run(8 * 3600)
 print(analyse(engine).render())
 ```
 
-## The object model
-
-Everything is a `TwinObject` in a tree — the tree is *ownership*, the connections
-are *material flow*. A machine belongs to one line but can feed several buffers.
-
-| Object | What it does |
-|---|---|
-| `Factory`, `Area` | Grouping. A plant, a line, a cell, a warehouse. |
-| `Source` | Introduces material at an interval. |
-| `Buffer` | Bounded store. **Capacity is what creates blocking.** |
-| `Machine` | Processes a part over a cycle time. Optional `mtbf`/`mttr`. |
-| `Conveyor` | Transport with a travel time. |
-| `Sink` | Collects finished parts and records lead time. |
-| `Worker` | A named operator, for manning models. |
-
-### Flow is pull-with-blocking
-
-Because that is how real lines behave:
-
-- a station **pulls** work upstream when it's free,
-- it **blocks** when the downstream buffer is full,
-- it **starves** when the upstream buffer is empty.
-
-Blocked and starved time are tracked as first-class state, not inferred
-afterwards — which is exactly why the report can name the bottleneck instead of
-just showing you utilisation and leaving you to guess.
-
-### Signals
-
-Objects talk through signals, so you can hook behaviour on without subclassing:
+Add your own machine types — the `.twin` loader picks them up from the registry:
 
 ```python
-cnc.signal("failed").connect(lambda m: print(f"{m.name} went down"))
-cnc.signal("cycle_completed").connect(count_part)
-```
-
-Available on stations: `cycle_started`, `cycle_completed`, `blocked`, `starved`,
-`failed`, `repaired`. On buffers: `received`, `released`, `full`, `empty`.
-
-### Distributions
-
-Anywhere a duration is accepted you can give a constant or a distribution:
-
-```yaml
-cycle_time: 42s
-cycle_time: {normal:      {mean: 40s, sd: 4s}}
-cycle_time: {exponential: {mean: 25s}}
-cycle_time: {uniform:     {low: 10s, high: 20s}}
-cycle_time: {triangular:  {low: 12s, mode: 15s, high: 24s}}
-```
-
-## The CLI
-
-```bash
-twin show  examples/line_a.twin            # print the object tree
-twin run   examples/line_a.twin --for 8h   # simulate and report
-twin run   examples/line_a.twin --json -o out.json
-twin sweep examples/line_a.twin --runs 20  # variance across seeds
-twin ui    examples/line_a.twin --for 8h   # interactive HTML replay
-```
-
-### Interactive replay (`twin ui`)
-
-Simulates the twin, then opens a self-contained HTML page — a flow diagram of
-the whole factory with a scrubber and play button, so you can watch the run
-happen: buffers filling and draining, machines flipping between running,
-blocked, starved and down, the bottleneck lit up the moment it starts
-constraining the line.
-
-No server. No external JS. The file is one `~1MB` HTML document with the full
-event log embedded, so it opens offline and you can hand it to someone else —
-a judge, a teammate — as a single file.
-
-It works by *listening*, not by changing the engine: `Recorder` connects to
-the same signals described above (`cycle_started`, `blocked`, `received`, …)
-and logs every transition with a timestamp. The engine has no idea a UI is
-watching, which is the whole point — rendering is a consumer of the model,
-never a prerequisite for it.
-
-`sweep` is the one people underestimate. A single run of a stochastic model is
-an anecdote:
-
-```
-  seed   throughput   per hour    lead time        bottleneck
-──────────────────────────────────────────────────────────────
-     1          468       58.5     00:31:26            CNC_02
-     2          455       56.9     00:33:04            CNC_02
-     3          471       58.9     00:30:11            CNC_02
-──────────────────────────────────────────────────────────────
-  mean        464.7              spread 16 across 20 runs
-```
-
-## Extending it
-
-Add your own object type and register it — the `.twin` loader picks it up:
-
-```python
-from twinforge import Machine, REGISTRY
+from twinops import Machine, REGISTRY
 
 class PaintBooth(Machine):
     type_name = "PaintBooth"
 
-    def setup(self):
-        super().setup()
-        self.signal("cycle_completed").connect(self._log_voc)
-
-    def _log_voc(self, part):
-        self.metadata.setdefault("voc_grams", 0)
-        self.metadata["voc_grams"] += 12
-
 REGISTRY["PaintBooth"] = PaintBooth
 ```
 
-## Status and roadmap
-
-**v0.1 — this release.** Object model, discrete-event engine, `.twin` format,
-material flow with blocking and starvation, reliability, KPI and bottleneck
-analysis, CLI. Headless and tested.
-
-Next, roughly in order: a live 2D layout view, a plugin SDK, an asset library
-of reusable cells, 3D visualisation, live OPC-UA/MQTT connections for true
-digital twins, and an optimisation layer.
-
-The engine is deliberately independent of any viewer. Rendering is a consumer of
-the model, never a prerequisite for it.
-
-## Tests
-
 ```bash
-pip install -e ".[dev]"
-pytest -q
+pip install -e ".[dev]" && pytest -q     # 30 tests
 ```
 
-27 tests covering the tree, signals, event ordering, material conservation,
-backpressure, determinism, bottleneck detection and the file format — including
-a 60-station chain that verifies flow never recurses.
+Tests cover the object tree, event ordering, **material conservation** (nothing is
+created or lost), backpressure, determinism, parallel fairness, bottleneck detection,
+and the file format.
+
+---
+
+## Help wanted
+
+The engine is solid. The gaps are in everything around it, and most are small enough
+for a first-time contributor. Issues tagged
+[`good first issue`](https://github.com/Jayaragul/twinops/labels/good%20first%20issue)
+are scoped deliberately small.
+
+**Genuinely useful right now**
+
+- **Shift patterns and breaks.** Real lines stop for lunch. Nothing models that yet, and
+  it changes every number on the report.
+- **Changeover / setup time.** Switching a machine from product A to product B costs
+  time. Common in textiles, entirely missing here.
+- **Batch processing.** Ovens and dye baths process 50 units at once, not one at a time.
+- **Excel import** (`.xlsx`) alongside the existing CSV path.
+- **Share a layout by URL** — encode the model in the fragment so a link reproduces it.
+- **Cost modelling.** Throughput is only half the argument; managers ask about money.
+
+**Bigger swings**
+
+- **Live data.** Read OPC-UA or MQTT so the twin tracks the real floor instead of a guess.
+- **Optimiser.** Given a budget, search layouts for the best throughput per rupee.
+- **Better plain-English parsing.** The current parser is regex-based and easily fooled.
+- **Validation against a real line.** *The single most valuable contribution anyone
+  could make.* If you have real throughput data, model it and tell us where the
+  simulation is wrong. Correctness beats features.
+
+**Not sure where to start?** Open an issue describing your line — what it makes, where it
+jams. Turning real floors into worked examples is genuinely useful, and no code required.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
 
 ## Licence
 
-MIT. Use it for your hackathon, your thesis, or your plant.
+MIT — use it for your hackathon, your thesis, or your plant.
+
+<div align="center">
+<sub>Built by <a href="https://github.com/Jayaragul">Jayaragul N</a> · Coimbatore, India</sub>
+</div>

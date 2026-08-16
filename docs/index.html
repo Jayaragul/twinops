@@ -1,0 +1,1311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TwinOps Studio</title>
+<style>
+:root{
+  --bg:#05070f; --panel:#0d1120; --panel2:#121830; --panel3:#182042;
+  --border:rgba(255,255,255,.09); --border-strong:rgba(255,255,255,.2);
+  --text:#e7ebf5; --text-dim:#8791ab;
+  --accent:#00c2d1; --accent-dim:#0a5d66; --accent-soft:rgba(0,194,209,.14);
+  --idle:#5b6478; --running:#22c55e; --blocked:#f59e0b; --starved:#38bdf8; --down:#ef4444;
+  --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden;}
+button,input,select{font-family:inherit;}
+
+.studio{display:flex;height:100vh;width:100vw;}
+
+.palette{width:168px;flex:none;background:var(--panel);border-right:1px solid var(--border);padding:16px 12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;}
+.palette .brand{font-size:15px;font-weight:700;letter-spacing:.3px;margin-bottom:2px;}
+.palette .brand .tag{display:block;font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:1.5px;margin-top:2px;}
+.palette .hint{font-size:11px;color:var(--text-dim);line-height:1.5;margin-bottom:6px;}
+.pitem{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;cursor:grab;user-select:none;transition:border-color .15s,transform .1s;}
+.pitem:hover{border-color:var(--accent);}
+.pitem:active{cursor:grabbing;transform:scale(.97);}
+.pitem svg{flex:none;}
+.pitem .label{font-size:12.5px;font-weight:600;}
+.pitem .desc{font-size:10px;color:var(--text-dim);}
+.palette .footer-note{margin-top:auto;font-size:10px;color:var(--text-dim);line-height:1.5;padding-top:10px;border-top:1px solid var(--border);}
+.palette .footer-note a{color:var(--accent);text-decoration:none;}
+
+.canvas-wrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
+
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.topbar input#quickstart{flex:1 1 320px;min-width:180px;background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);padding:9px 12px;border-radius:6px;font-size:13px;}
+.topbar input#quickstart::placeholder{color:var(--text-dim);}
+.btn{background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);padding:9px 14px;border-radius:6px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;transition:border-color .15s,color .15s,background .15s;}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#02222a;}
+.btn.primary:hover{filter:brightness(1.08);color:#02222a;}
+.btn.play{background:linear-gradient(180deg,#1adf8f,#0fae6c);border:none;color:#02220f;font-size:15px;padding:11px 26px;border-radius:8px;box-shadow:0 4px 18px rgba(26,223,143,.35);}
+.btn.play:hover{filter:brightness(1.07);}
+.btn.ghost{background:transparent;}
+select.durSel{background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);padding:9px 10px;border-radius:6px;font-size:12.5px;}
+.spacer{flex:1;}
+
+.stage-outer{flex:1;position:relative;overflow:hidden;}
+svg#canvas{width:100%;height:100%;display:block;cursor:default;}
+.grid-fade{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%, transparent 40%, var(--bg) 92%);}
+
+.node-card rect.card{fill:var(--panel2);stroke:var(--border-strong);stroke-width:1.6;transition:stroke .2s,filter .2s;}
+.node-card.auto rect.card{stroke-dasharray:4 3;opacity:.82;}
+.node-card:hover rect.card{stroke:var(--accent);}
+.node-card.selected rect.card{stroke:var(--accent);filter:drop-shadow(0 0 8px var(--accent-soft));}
+.node-card text{fill:var(--text);font-family:var(--sans);pointer-events:none;}
+.node-card .type-label{font-family:var(--mono);fill:var(--text-dim);font-size:9px;letter-spacing:1px;}
+.node-card .stat-label{font-family:var(--mono);fill:var(--text-dim);font-size:9px;pointer-events:none;}
+.node-card .auto-badge{font-family:var(--mono);fill:var(--text-dim);font-size:8px;font-style:italic;}
+.port{fill:var(--panel3);stroke:var(--border-strong);stroke-width:1.4;cursor:crosshair;}
+.port:hover{fill:var(--accent);stroke:var(--accent);}
+.port.hot{fill:var(--accent);stroke:var(--accent);r:7;}
+.gear{transform-origin:center;transform-box:fill-box;}
+.gear.spin{animation:spin 1.6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.buffer-shell{fill:var(--panel3);stroke:var(--border-strong);stroke-width:1.6;}
+.buffer-fill{fill:var(--accent-dim);transition:height .25s,y .25s,fill .25s;}
+.buffer-fill.full{fill:#7a3b12;}
+.node-card.flash rect.card,.node-card.flash .buffer-shell{filter:drop-shadow(0 0 9px var(--accent));}
+.node-card.bottleneck rect.card{stroke:var(--down);animation:pulseRing 1.1s ease-in-out infinite;}
+@keyframes pulseRing{0%,100%{filter:drop-shadow(0 0 3px var(--down));}50%{filter:drop-shadow(0 0 13px var(--down));}}
+.edge-path{stroke:var(--border-strong);stroke-width:1.8;fill:none;marker-end:url(#arrow);}
+.rubber{stroke:var(--accent);stroke-width:2;fill:none;stroke-dasharray:5 4;pointer-events:none;}
+.particle{fill:var(--accent);filter:drop-shadow(0 0 3px var(--accent));}
+
+.inspector{position:absolute;top:16px;right:16px;width:230px;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.inspector.hidden{display:none;}
+.inspector .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.inspector h3{margin:0;font-size:13px;}
+.inspector .del{background:none;border:none;color:var(--down);cursor:pointer;font-size:15px;padding:2px 6px;}
+.inspector label{display:block;font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;margin:10px 0 4px;}
+.inspector input[type=text],.inspector input[type=number]{width:100%;background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);padding:7px 9px;border-radius:5px;font-size:12.5px;}
+.inspector .field-row{display:flex;gap:6px;}
+.inspector .field-row > *{flex:1;min-width:0;}
+.inspector details{margin-top:10px;}
+.inspector summary{font-size:11px;color:var(--text-dim);cursor:pointer;}
+.inspector .auto-note{font-size:10.5px;color:var(--accent);margin-top:8px;line-height:1.4;}
+
+.welcome{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;color:var(--text-dim);max-width:360px;}
+.welcome.hidden{display:none;}
+.welcome .big{font-size:16px;color:var(--text);margin-bottom:6px;}
+.welcome .small{font-size:12.5px;line-height:1.6;}
+
+.legend{position:absolute;bottom:16px;left:16px;display:flex;gap:14px;font-family:var(--mono);font-size:10.5px;color:var(--text-dim);background:rgba(13,17,32,.85);padding:8px 12px;border-radius:8px;border:1px solid var(--border);}
+.legend .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;}
+
+.hud{position:absolute;left:16px;top:16px;display:flex;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.hud.hidden{display:none;}
+.hud .tile{background:var(--panel);padding:10px 16px;min-width:96px;}
+.hud .tile .l{font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;}
+.hud .tile .v{font-family:var(--mono);font-size:18px;margin-top:3px;font-variant-numeric:tabular-nums;}
+.hud .tile .v.accent{color:var(--accent);}
+.hud .tile .v.warn{color:var(--blocked);}
+
+.insight{position:absolute;left:50%;top:88px;transform:translateX(-50%);max-width:460px;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;padding:12px 18px;font-size:13px;line-height:1.5;box-shadow:0 10px 30px rgba(0,0,0,.4);text-align:center;}
+.insight.hidden{display:none;}
+.insight.warn{border-color:var(--blocked);}
+.insight.ok{border-color:var(--running);}
+.insight b{color:var(--blocked);}
+.insight.ok b{color:var(--running);}
+
+.transport{position:absolute;bottom:16px;right:16px;display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.transport.hidden{display:none;}
+.transport button{background:var(--panel2);border:1px solid var(--border-strong);color:var(--text);font-size:13px;padding:6px 12px;border-radius:5px;cursor:pointer;}
+.transport button:hover{border-color:var(--accent);color:var(--accent);}
+.transport input[type=range]{width:160px;accent-color:var(--accent);}
+.transport .clock{font-family:var(--mono);font-size:12px;min-width:78px;text-align:right;}
+
+.report-toggle{position:absolute;right:16px;bottom:70px;background:var(--panel);border:1px solid var(--border-strong);color:var(--text-dim);font-size:11px;padding:6px 12px;border-radius:6px;cursor:pointer;}
+.report-toggle.hidden{display:none;}
+.report-toggle:hover{color:var(--accent);border-color:var(--accent);}
+.report-drawer{position:absolute;right:16px;bottom:112px;width:420px;max-height:50vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.report-drawer.hidden{display:none;}
+.report-drawer table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;margin-bottom:14px;}
+.report-drawer th,.report-drawer td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--border);}
+.report-drawer th:first-child,.report-drawer td:first-child{text-align:left;}
+.report-drawer th{color:var(--text-dim);font-weight:500;font-size:9px;text-transform:uppercase;}
+.report-drawer tr.bottleneck td{color:var(--blocked);}
+
+.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--panel3);border:1px solid var(--border-strong);color:var(--text);font-size:12.5px;padding:9px 16px;border-radius:8px;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="studio">
+
+  <aside class="palette">
+    <div class="brand">TwinOps<span class="tag">STUDIO</span></div>
+    <div class="hint">Drag a piece onto the canvas. Draw a line to connect it. Press Play.</div>
+
+    <div class="pitem" draggable="true" data-type="Source">
+      <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="11" fill="none" stroke="#00c2d1" stroke-width="1.6"/><path d="M9 8 L18 13 L9 18 Z" fill="#00c2d1"/></svg>
+      <div><div class="label">Intake</div><div class="desc">where material arrives</div></div>
+    </div>
+    <div class="pitem" draggable="true" data-type="Machine">
+      <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="5.5" fill="none" stroke="#8791ab" stroke-width="2"/><g id="gear-preview"></g></svg>
+      <div><div class="label">Machine</div><div class="desc">does one step of work</div></div>
+    </div>
+    <div class="pitem" draggable="true" data-type="Buffer">
+      <svg width="26" height="26" viewBox="0 0 26 26"><ellipse cx="13" cy="7" rx="7" ry="2.6" fill="none" stroke="#8791ab" stroke-width="1.6"/><path d="M6 7 L6 19 A7 2.6 0 0 0 20 19 L20 7" fill="none" stroke="#8791ab" stroke-width="1.6"/></svg>
+      <div><div class="label">Buffer</div><div class="desc">a basket that waits</div></div>
+    </div>
+    <div class="pitem" draggable="true" data-type="Sink">
+      <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="11" fill="none" stroke="#00c2d1" stroke-width="1.6"/><path d="M8 13 L11.5 17 L18 9" fill="none" stroke="#00c2d1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><div class="label">Shipping</div><div class="desc">where finished goods leave</div></div>
+    </div>
+
+    <div class="footer-note">Or skip the dragging entirely — describe your line in plain English, or upload a spreadsheet, up top. <a href="https://github.com/Jayaragul/twinops" target="_blank">twinops on GitHub</a></div>
+  </aside>
+
+  <div class="canvas-wrap">
+    <div class="topbar">
+      <input type="text" id="quickstart" placeholder='Try: &quot;3 sewing machines, a buffer for 50 shirts, an inspection table&quot;'>
+      <button class="btn primary" id="quickstartBtn">Build it</button>
+      <button class="btn" id="csvBtn">Upload spreadsheet</button>
+      <input type="file" id="csvFile" accept=".csv" hidden>
+      <button class="btn ghost" id="clearBtn">Clear canvas</button>
+      <div class="spacer"></div>
+      <select class="durSel" id="runFor">
+        <option value="3600">Run: 1 hour</option>
+        <option value="28800" selected>Run: 8-hour shift</option>
+        <option value="86400">Run: 24 hours</option>
+        <option value="604800">Run: 1 week</option>
+      </select>
+      <button class="btn play" id="playBtn">&#9654; PLAY</button>
+    </div>
+
+    <div class="stage-outer">
+      <svg id="canvas"></svg>
+      <div class="grid-fade"></div>
+
+      <div class="welcome" id="welcome">
+        <div class="big">Your factory floor starts empty.</div>
+        <div class="small">Drag pieces from the left onto the grid, or just type what you have above and click Build it.</div>
+      </div>
+
+      <div class="inspector hidden" id="inspector"></div>
+
+      <div class="legend">
+        <span><span class="dot" style="background:var(--running)"></span>running</span>
+        <span><span class="dot" style="background:var(--blocked)"></span>blocked</span>
+        <span><span class="dot" style="background:var(--starved)"></span>waiting</span>
+        <span><span class="dot" style="background:var(--down)"></span>down</span>
+      </div>
+
+      <div class="hud hidden" id="hud">
+        <div class="tile"><div class="l">Shipped</div><div class="v accent" id="hud-throughput">0</div></div>
+        <div class="tile"><div class="l">In progress</div><div class="v" id="hud-wip">0</div></div>
+        <div class="tile"><div class="l">Sim time</div><div class="v" id="hud-clock">00:00:00</div></div>
+      </div>
+
+      <div class="insight hidden" id="insight"></div>
+
+      <button class="report-toggle hidden" id="reportToggle">show detailed numbers</button>
+      <div class="report-drawer hidden" id="reportDrawer"></div>
+
+      <div class="transport hidden" id="transport">
+        <button id="editBtn" title="back to editing">&#9998; edit</button>
+        <button id="restartBtn" title="restart">&#8634;</button>
+        <button id="playPauseBtn" title="play / pause">&#9654;</button>
+        <input type="range" id="scrubber" min="0" value="0">
+        <span class="clock" id="clock">00:00:00</span>
+        <button id="reseedBtn" title="re-run with new randomness">&#127922; try another day</button>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================== seeded RNG & distributions ============================== */
+
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function makeRng(seed){
+  const next = mulberry32(seed);
+  return {
+    random: next,
+    uniform(lo,hi){ return lo + next()*(hi-lo); },
+    gauss(mean,sd){
+      const u1=Math.max(next(),1e-9), u2=next();
+      const z=Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+      return Math.max(0, mean + z*sd);
+    },
+    expo(mean){ return -Math.log(1-next())*mean; },
+    triangular(lo,hi,mode){
+      const u=next(), c=(mode-lo)/(hi-lo);
+      return u<c ? lo+Math.sqrt(u*(hi-lo)*(mode-lo)) : hi-Math.sqrt((1-u)*(hi-lo)*(hi-mode));
+    },
+  };
+}
+
+const UNIT = {s:1,sec:1,secs:1,second:1,seconds:1, m:60,min:60,mins:60,minute:60,minutes:60, h:3600,hr:3600,hrs:3600,hour:3600,hours:3600, d:86400,day:86400,days:86400};
+function parseDuration(v){
+  if(typeof v === 'number') return v;
+  const s = String(v).trim().toLowerCase();
+  const m = s.match(/^([\d.]+)\s*([a-z]*)$/);
+  if(!m) return 30;
+  const n = parseFloat(m[1]);
+  const unit = m[2] || 's';
+  return n * (UNIT[unit] || 1);
+}
+function sampleDuration(spec, rng){
+  if(spec == null) return 30;
+  if(typeof spec !== 'object') return parseDuration(spec);
+  const kind = Object.keys(spec)[0];
+  const p = spec[kind];
+  if(kind === 'normal') return rng.gauss(parseDuration(p.mean), parseDuration(p.sd));
+  if(kind === 'exponential') return rng.expo(parseDuration(p.mean));
+  if(kind === 'uniform') return rng.uniform(parseDuration(p.low), parseDuration(p.high));
+  if(kind === 'triangular') return rng.triangular(parseDuration(p.low), parseDuration(p.high), parseDuration(p.mode));
+  return 30;
+}
+function fmtTime(s){
+  s = Math.max(0, Math.floor(s));
+  const d = Math.floor(s/86400); s%=86400;
+  const h = Math.floor(s/3600); s%=3600;
+  const m = Math.floor(s/60); s%=60;
+  const pad = n => String(n).padStart(2,'0');
+  return (d ? d+'d ' : '') + pad(h)+':'+pad(m)+':'+pad(s);
+}
+
+/* ================================== min-heap event queue ================================== */
+
+class Heap{
+  constructor(){ this.a=[]; }
+  get size(){ return this.a.length; }
+  push(item){
+    const a=this.a; a.push(item); let i=a.length-1;
+    while(i>0){ const p=(i-1)>>1; if(a[p][0]<=a[i][0] && (a[p][0]<a[i][0] || a[p][1]<=a[i][1])) break; [a[p],a[i]]=[a[i],a[p]]; i=p; }
+  }
+  pop(){
+    const a=this.a; const top=a[0]; const last=a.pop();
+    if(a.length){ a[0]=last; let i=0;
+      while(true){ let l=2*i+1,r=2*i+2,s=i;
+        if(l<a.length && (a[l][0]<a[s][0] || (a[l][0]===a[s][0]&&a[l][1]<a[s][1]))) s=l;
+        if(r<a.length && (a[r][0]<a[s][0] || (a[r][0]===a[s][0]&&a[r][1]<a[s][1]))) s=r;
+        if(s===i) break; [a[i],a[s]]=[a[s],a[i]]; i=s;
+      }
+    }
+    return top;
+  }
+  peek(){ return this.a[0]; }
+}
+
+/* ==================================== DES engine ==================================== */
+// Mirrors twinops/objects.py: pull-with-blocking, zero-delay "nudge" so a
+// push cascading into a pull never recurses -- same reason the Python engine
+// routes everything through the event queue instead of calling handlers directly.
+
+const IDLE='idle', RUNNING='running', BLOCKED='blocked', STARVED='starved', DOWN='down';
+
+class EngineTracker{
+  constructor(){ this.state=IDLE; this.since=0; this.totals={}; }
+  to(state, now){
+    if(state===this.state) return;
+    this.totals[this.state]=(this.totals[this.state]||0)+(now-this.since);
+    this.state=state; this.since=now;
+  }
+  close(now){ this.totals[this.state]=(this.totals[this.state]||0)+(now-this.since); }
+  frac(state, total){ return total>0 ? (this.totals[state]||0)/total : 0; }
+}
+
+let PART_SEQ = 1;
+class Part{ constructor(kind, createdAt){ this.id=PART_SEQ++; this.kind=kind; this.createdAt=createdAt; this.completedAt=null; } }
+
+class REngine{
+  constructor(seed){
+    this.now=0; this.heap=new Heap(); this.seq=0; this.rng=makeRng(seed>>>0);
+    this.events=[]; // recorded log for replay: {t,path,type,level?,part?}
+  }
+  schedule(delay, cb){ this.heap.push([this.now+Math.max(0,delay), this.seq++, cb]); }
+  sample(spec){ return sampleDuration(spec, this.rng); }
+  record(path, type, extra){ const e={t:this.now,path,type}; if(extra) Object.assign(e,extra); this.events.push(e); }
+  run(until){
+    while(this.heap.size){
+      const top = this.heap.peek();
+      if(top[0] > until) break;
+      const [t,,cb] = this.heap.pop();
+      this.now = t; cb();
+    }
+    this.now = Math.max(this.now, until);
+  }
+}
+
+class RBuffer{
+  constructor(node, engine){
+    this.node=node; this.engine=engine; this.path=node.id;
+    this.capacity=Math.max(1, node.props.capacity||10);
+    this.items=[]; this.peak=0; this.levelTime=0; this.lastChange=0;
+    this.onReceived=[]; this.onReleased=[]; this.recvRot=0;
+  }
+  get isFull(){ return this.items.length >= this.capacity; }
+  integrate(now){ this.levelTime += this.items.length*(now-this.lastChange); this.lastChange=now; }
+  push(part){
+    if(this.isFull) return false;
+    const now=this.engine.now;
+    this.integrate(now);
+    this.items.push(part);
+    this.peak=Math.max(this.peak, this.items.length);
+    this.engine.record(this.path,'received',{level:this.items.length, part:part.id});
+    /* Rotate who gets notified first. Two identical parallel machines sharing
+       one buffer would otherwise starve one of them permanently: whichever
+       connected first always wins the race for every new part, since nudges
+       fire in fixed subscription order every single time. */
+    const n=this.onReceived.length;
+    for(let k=0;k<n;k++) this.onReceived[(this.recvRot+k)%n]();
+    if(n>0) this.recvRot=(this.recvRot+1)%n;
+    return true;
+  }
+  pop(){
+    if(!this.items.length) return null;
+    const now=this.engine.now;
+    this.integrate(now);
+    const part=this.items.shift();
+    this.engine.record(this.path,'released',{level:this.items.length, part:part.id});
+    this.onReleased.forEach(fn=>fn());
+    return part;
+  }
+  finalise(now){ this.integrate(now); }
+  avgLevel(total){ return total>0 ? this.levelTime/total : 0; }
+}
+
+class RStation{
+  constructor(node, engine){
+    this.node=node; this.engine=engine; this.path=node.id;
+    this.inputs=[]; this.outputs=[];
+    this.tracker=new EngineTracker();
+    this.processed=0; this.failures=0;
+    this.current=null; this.pending=null; this.wakeScheduled=false; this.broken=false;
+  }
+  feeds(buf){ this.outputs.push(buf); buf.onReleased.push(()=>this.nudge()); }
+  fedBy(buf){ this.inputs.push(buf); buf.onReceived.push(()=>this.nudge()); }
+  nudge(){
+    if(this.wakeScheduled) return;
+    this.wakeScheduled=true;
+    this.engine.schedule(0, ()=>{ this.wakeScheduled=false; this.pending!==null ? this.tryDeliver(this.pending) : this.tryStart(); });
+  }
+  takeInput(){
+    for(const b of this.inputs){ const p=b.pop(); if(p) return p; }
+    return null;
+  }
+  tryDeliver(part){
+    const now=this.engine.now;
+    for(const b of this.outputs){
+      if(b.push(part)){
+        this.pending=null; this.current=null; this.processed++;
+        this.engine.record(this.path,'cycle_completed');
+        this.tracker.to(IDLE, now);
+        this.nudge();
+        return true;
+      }
+    }
+    this.pending=part;
+    if(this.tracker.state!==BLOCKED){ this.tracker.to(BLOCKED, now); this.engine.record(this.path,'blocked'); }
+    return false;
+  }
+}
+
+class RMachine extends RStation{
+  constructor(node, engine){
+    super(node, engine);
+    this.cycleTime = node.props.cycleTime != null ? node.props.cycleTime : 45;
+    this.mtbf = node.props.mtbf || null;
+    this.mttr = node.props.mttr || 300;
+  }
+  setup(){
+    this.tracker.to(STARVED, this.engine.now);
+    if(this.mtbf) this.scheduleFailure();
+    this.tryStart();
+  }
+  scheduleFailure(){ this.engine.schedule(this.engine.sample({exponential:{mean:this.mtbf}}), ()=>this.fail()); }
+  fail(){
+    if(this.broken) return;
+    this.broken=true; this.failures++;
+    this.tracker.to(DOWN, this.engine.now);
+    this.engine.record(this.path,'failed');
+    const repair = this.engine.sample({exponential:{mean:this.mttr}});
+    this.engine.schedule(repair, ()=>this.repair());
+  }
+  repair(){
+    this.broken=false;
+    this.tracker.to(IDLE, this.engine.now);
+    this.engine.record(this.path,'repaired');
+    if(this.mtbf) this.scheduleFailure();
+    this.nudge();
+  }
+  tryStart(){
+    if(this.broken || this.current!==null || this.pending!==null) return;
+    const part=this.takeInput();
+    if(!part){
+      if(this.tracker.state!==STARVED && this.tracker.state!==DOWN){ this.tracker.to(STARVED, this.engine.now); this.engine.record(this.path,'starved'); }
+      return;
+    }
+    this.current=part;
+    this.tracker.to(RUNNING, this.engine.now);
+    this.engine.record(this.path,'cycle_started');
+    this.engine.schedule(this.engine.sample(this.cycleTime), ()=>this.finish());
+  }
+  finish(){
+    if(this.broken){ this.engine.schedule(1, ()=>this.finish()); return; }
+    if(this.current===null) return;
+    this.tryDeliver(this.current);
+  }
+}
+
+class RSource{
+  constructor(node, engine){
+    this.node=node; this.engine=engine; this.path=node.id;
+    this.interval = node.props.interval != null ? node.props.interval : 30;
+    this.outputs=[]; this.created=0; this.rejected=0;
+  }
+  feeds(buf){ this.outputs.push(buf); }
+  setup(){ this.engine.schedule(this.engine.sample(this.interval), ()=>this.generate()); }
+  generate(){
+    const part=new Part('part', this.engine.now);
+    let placed=false;
+    for(const b of this.outputs){ if(b.push(part)){ placed=true; break; } }
+    if(placed){ this.created++; this.engine.record(this.path,'created',{part:part.id}); }
+    else this.rejected++;
+    this.engine.schedule(this.engine.sample(this.interval), ()=>this.generate());
+  }
+}
+
+class RSink{
+  constructor(node, engine){
+    this.node=node; this.engine=engine; this.path=node.id;
+    this.inputs=[]; this.completed=[]; this.leadTimes=[];
+  }
+  fedBy(buf){ this.inputs.push(buf); buf.onReceived.push(()=>this.drain()); }
+  drain(){
+    for(const b of this.inputs){
+      let p;
+      while((p=b.pop())){ p.completedAt=this.engine.now; this.leadTimes.push(p.completedAt-p.createdAt); this.completed.push(p); this.engine.record(this.path,'completed',{part:p.id}); }
+    }
+  }
+}
+
+/* ============================= graph -> engine, run, analyse ============================= */
+
+function buildEngineFromGraph(graph, seed, until){
+  const engine = new REngine(seed);
+  const byId = {};
+  const buffers = {}, stations = {}, sources = {}, sinks = {};
+
+  for(const n of graph.nodes){
+    if(n.type==='Buffer'){ const b=new RBuffer(n, engine); buffers[n.id]=b; byId[n.id]=b; }
+  }
+  for(const n of graph.nodes){
+    if(n.type==='Machine'){ const m=new RMachine(n, engine); stations[n.id]=m; byId[n.id]=m; }
+    else if(n.type==='Source'){ const s=new RSource(n, engine); sources[n.id]=s; byId[n.id]=s; }
+    else if(n.type==='Sink'){ const k=new RSink(n, engine); sinks[n.id]=k; byId[n.id]=k; }
+  }
+  for(const e of graph.edges){
+    const from=byId[e.from], to=byId[e.to];
+    if(!from || !to) continue;
+    if(from instanceof RBuffer){
+      if(to instanceof RSink) to.fedBy(from); else to.fedBy(from);
+    } else {
+      from.feeds(to);
+    }
+  }
+  for(const id in stations) stations[id].setup();
+  for(const id in sources) sources[id].setup();
+
+  engine.run(until);
+  for(const id in buffers) buffers[id].finalise(engine.now);
+  for(const id in stations) stations[id].tracker.close(engine.now);
+
+  return {engine, buffers, stations, sources, sinks};
+}
+
+function analyseRun(run, until){
+  const stationsOut=[], buffersOut=[];
+  let throughput=0, leadTimes=[];
+  for(const id in run.stations){
+    const s=run.stations[id];
+    stationsOut.push({
+      id, name:s.node.name, processed:s.processed,
+      utilisation:s.tracker.frac(RUNNING, until), blocked:s.tracker.frac(BLOCKED, until),
+      starved:s.tracker.frac(STARVED, until), down:s.tracker.frac(DOWN, until), failures:s.failures,
+    });
+  }
+  for(const id in run.buffers){
+    const b=run.buffers[id];
+    buffersOut.push({id, name:b.node.name, avg:b.avgLevel(until), peak:b.peak, capacity:b.capacity});
+  }
+  for(const id in run.sinks){ throughput += run.sinks[id].completed.length; leadTimes=leadTimes.concat(run.sinks[id].leadTimes); }
+  let bottleneck=null, bestScore=-Infinity;
+  for(const s of stationsOut){
+    const score = s.utilisation + s.blocked*0.5 - s.starved*0.5;
+    if(score>bestScore){ bestScore=score; bottleneck=s; }
+  }
+  const avgLead = leadTimes.length ? leadTimes.reduce((a,b)=>a+b,0)/leadTimes.length : 0;
+  return {stations:stationsOut, buffers:buffersOut, throughput, avgLead, bottleneck, duration:until};
+}
+
+function insightText(report){
+  if(!report.bottleneck || report.throughput===0){
+    return {tone:'warn', html:'Nothing shipped yet — check that every piece has somewhere to send its work.'};
+  }
+  const bn=report.bottleneck, u=Math.round(bn.utilisation*100);
+  if(u>=75){
+    return {tone:'warn', html:`&#9888;&#65039; <b>${esc(bn.name)}</b> is your bottleneck — busy ${u}% of the time and rarely waiting for parts. Adding capacity here helps the most; a bigger buffer in front of it will not.`};
+  }
+  if(u<45){
+    return {tone:'ok', html:`&#9989; Plenty of spare capacity — <b>${esc(bn.name)}</b> is your busiest step and it's only running ${u}% of the time.`};
+  }
+  return {tone:'warn', html:`<b>${esc(bn.name)}</b> is your busiest step at ${u}% — worth watching as demand grows.`};
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ===================================== graph state ===================================== */
+
+let NODE_SEQ = 1, EDGE_SEQ = 1;
+const graph = { nodes: [], edges: [] };
+let selectedId = null;
+let mode = 'edit'; // 'edit' | 'running'
+let lastRun = null, lastReport = null;
+
+function newId(){ return 'n'+(NODE_SEQ++); }
+function defaultName(type){
+  const counts = graph.nodes.filter(n=>n.type===type).length + 1;
+  const labels = {Source:'Intake', Machine:'Machine', Buffer:'Buffer', Sink:'Shipping'};
+  return `${labels[type]} ${counts}`;
+}
+function addNode(type, x, y, opts){
+  opts = opts || {};
+  const n = { id:newId(), type, name:opts.name||defaultName(type), x, y, auto:!!opts.auto,
+    props: type==='Machine' ? {cycleTime:opts.cycleTime||45, mtbf:opts.mtbf||null, mttr:opts.mttr||300}
+         : type==='Buffer'  ? {capacity:opts.capacity||20}
+         : type==='Source'  ? {interval:opts.interval||30}
+         : {} };
+  graph.nodes.push(n);
+  return n;
+}
+function addEdge(fromId, toId){
+  if(graph.edges.some(e=>e.from===fromId && e.to===toId)) return;
+  graph.edges.push({id:'e'+(EDGE_SEQ++), from:fromId, to:toId});
+}
+function removeNode(id){
+  graph.nodes = graph.nodes.filter(n=>n.id!==id);
+  graph.edges = graph.edges.filter(e=>e.from!==id && e.to!==id);
+}
+function nodeById(id){ return graph.nodes.find(n=>n.id===id); }
+function outgoing(id){ return graph.edges.filter(e=>e.from===id); }
+function incoming(id){ return graph.edges.filter(e=>e.to===id); }
+
+/* connecting through a Buffer is how the engine understands flow; if the user
+   draws a line between two non-buffers, insert one automatically so the model
+   underneath always stays valid -- same rule twinfile.py enforces for .twin files */
+function connect(fromId, toId){
+  const from=nodeById(fromId), to=nodeById(toId);
+  if(!from || !to || fromId===toId) return;
+  if(from.type==='Sink' || to.type==='Source') return;
+  if(from.type==='Buffer' && to.type==='Buffer'){ return; }
+  if(from.type!=='Buffer' && to.type!=='Buffer'){
+    const mid = addNode('Buffer', (from.x+to.x)/2, (from.y+to.y)/2, {auto:true, capacity:20});
+    addEdge(fromId, mid.id); addEdge(mid.id, toId);
+  } else {
+    addEdge(fromId, toId);
+  }
+  render();
+}
+
+function autoComplete(){
+  const workingIds = graph.nodes.filter(n=>n.type==='Machine'||n.type==='Buffer').map(n=>n.id);
+  for(const id of workingIds){
+    const node = nodeById(id);
+    if(!node) continue;
+    if(incoming(id).length===0){
+      const bufId = node.type==='Buffer' ? id : addNode('Buffer', node.x-140, node.y, {auto:true, capacity:20}).id;
+      if(bufId!==id) addEdge(bufId, id);
+      const src = addNode('Source', nodeById(bufId).x-140, nodeById(bufId).y, {auto:true, interval:30});
+      addEdge(src.id, bufId);
+    }
+  }
+  for(const id of workingIds){
+    const node = nodeById(id);
+    if(!node) continue;
+    if(outgoing(id).length===0){
+      const bufId = node.type==='Buffer' ? id : addNode('Buffer', node.x+140, node.y, {auto:true, capacity:20}).id;
+      if(bufId!==id) addEdge(id, bufId);
+      const sink = addNode('Sink', nodeById(bufId).x+140, nodeById(bufId).y, {auto:true});
+      addEdge(bufId, sink.id);
+    }
+  }
+}
+
+/* ============================ plain-english & CSV -> stage graph ============================ */
+
+function parseQuickStart(text){
+  const clauses = text.split(/,| and then | then |\.|;/i).map(s=>s.trim()).filter(Boolean);
+  const stages = [];
+  let bufferCount = 0;
+  for(const clause of clauses){
+    const lower = clause.toLowerCase();
+    const timeMatch = clause.match(/(\d+(?:\.\d+)?)\s*(sec|second|seconds|min|minute|minutes|hour|hours|hr)s?/i);
+    const numMatch = clause.match(/(\d+)/);
+    if(/buffer|storage|queue|bin|basket|tray|stock/i.test(lower)){
+      bufferCount++;
+      stages.push({kind:'buffer', name: bufferCount>1 ? `Buffer ${bufferCount}` : 'Buffer',
+        capacity: numMatch ? parseInt(numMatch[1],10) : 20});
+      continue;
+    }
+    let qty = 1;
+    const leadingNum = clause.match(/^\s*(\d+)/);
+    if(leadingNum) qty = parseInt(leadingNum[1],10);
+    else if(/^\s*an?\s/i.test(clause)) qty = 1;
+    let name = clause.replace(/^\s*(\d+|an?)\s*/i,'').replace(/\bmachines?\b/gi,'').trim();
+    if(timeMatch) name = name.replace(timeMatch[0],'').trim();
+    name = name.replace(/\s{2,}/g,' ').trim();
+    if(!name) continue;
+    stages.push({kind:'group', name: titleCase(name), qty,
+      cycleTime: timeMatch ? parseDuration(timeMatch[1]+timeMatch[2]) : 45});
+  }
+  return stages;
+}
+function titleCase(s){ return s.replace(/\w\S*/g, t => t[0].toUpperCase()+t.slice(1).toLowerCase()); }
+
+function buildFromStages(stages, originX, originY){
+  const normalized = [];
+  for(const st of stages){
+    if(st.kind==='group'){
+      if(normalized.length && normalized[normalized.length-1].kind==='group') normalized.push({kind:'buffer', name:'Buffer', capacity:20, implied:true});
+      normalized.push(st);
+    } else {
+      if(normalized.length && normalized[normalized.length-1].kind==='buffer') normalized[normalized.length-1]=st;
+      else normalized.push(st);
+    }
+  }
+  let x = originX, y = originY;
+  let lastBuffer = null, pendingGroupNodes = null;
+  const created = [];
+  for(const st of normalized){
+    if(st.kind==='group'){
+      // parallel machines in one group share a single upstream buffer -- one
+      // intake feeding three sewing machines, not three independent supply chains
+      if(!lastBuffer){
+        lastBuffer = addNode('Buffer', x-100, y, {auto:true, capacity:20});
+        created.push(lastBuffer);
+        x += 100;
+      }
+      const nodes = [];
+      const rowSpan = 90;
+      const startY = y - (st.qty-1)*rowSpan/2;
+      for(let i=0;i<st.qty;i++){
+        const nm = st.qty>1 ? `${st.name} ${i+1}` : st.name;
+        const node = addNode('Machine', x, startY+i*rowSpan, {name:nm, cycleTime:st.cycleTime});
+        nodes.push(node); created.push(node);
+        addEdge(lastBuffer.id, node.id);
+      }
+      pendingGroupNodes = nodes;
+      x += 190;
+    } else {
+      const buf = addNode('Buffer', x, y, {name:st.name, capacity:st.capacity});
+      created.push(buf);
+      if(pendingGroupNodes){ pendingGroupNodes.forEach(n=>addEdge(n.id, buf.id)); pendingGroupNodes=null; }
+      lastBuffer = buf;
+      x += 190;
+    }
+  }
+  return created;
+}
+
+function runQuickStart(){
+  const text = document.getElementById('quickstart').value.trim();
+  if(!text){ toast('Type a short description first, e.g. "3 sewing machines, a buffer for 50 shirts"'); return; }
+  const stages = parseQuickStart(text);
+  if(!stages.length){ toast("Couldn't find any machines or buffers in that — try naming them plainly."); return; }
+  buildFromStages(stages, 140, canvasCenterY());
+  autoComplete();
+  layoutGraph();
+  render();
+  toast('Built it — drag anything to rearrange, or press Play.');
+}
+
+/* --- CSV --- */
+
+function parseCsv(text){
+  const rows = [];
+  let row=[], field='', inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQuotes){
+      if(c==='"'){ if(text[i+1]==='"'){ field+='"'; i++; } else inQuotes=false; }
+      else field+=c;
+    } else {
+      if(c==='"') inQuotes=true;
+      else if(c===','){ row.push(field); field=''; }
+      else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(field); rows.push(row); row=[]; field=''; }
+      else field+=c;
+    }
+  }
+  if(field.length||row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r=>r.some(c=>c.trim()!==''));
+}
+
+const HEADER_SYN = {
+  name:['name','station','machine'], type:['type','kind'],
+  quantity:['quantity','count'], cycle_time:['cycle_time','duration','time'],
+  capacity:['capacity','holds','size'], connects_to:['connects_to','next','downstream','to'],
+};
+function mapHeaders(headerRow){
+  const norm = headerRow.map(h=>h.trim().toLowerCase().replace(/\s+/g,'_'));
+  const idx = {};
+  for(const canon in HEADER_SYN){
+    for(const syn of HEADER_SYN[canon]){
+      const i = norm.indexOf(syn);
+      if(i>=0){ idx[canon]=i; break; }
+    }
+  }
+  return idx;
+}
+
+function importCsvText(text){
+  const rows = parseCsv(text);
+  if(rows.length<2){ toast('That spreadsheet looks empty.'); return; }
+  const idx = mapHeaders(rows[0]);
+  const dataRows = rows.slice(1);
+  const hasExplicitEdges = idx.connects_to!=null && dataRows.some(r=>(r[idx.connects_to]||'').trim());
+
+  if(hasExplicitEdges){
+    const baseX=140, baseY=canvasCenterY();
+    const createdByName = {};
+    dataRows.forEach((r,i)=>{
+      const name = idx.name!=null ? r[idx.name].trim() : `Row ${i+1}`;
+      let type = idx.type!=null ? titleCase(r[idx.type].trim()) : inferType(r, idx);
+      const qty = idx.quantity!=null ? (parseInt(r[idx.quantity],10)||1) : 1;
+      const timeVal = idx.cycle_time!=null && r[idx.cycle_time] ? parseDuration(r[idx.cycle_time]) : undefined;
+      const nodes = [];
+      for(let q=0;q<qty;q++){
+        const nm = qty>1 ? `${name} ${q+1}` : name;
+        const n = addNode(type, baseX+i*190, baseY+q*90-((qty-1)*45), {
+          name:nm,
+          cycleTime: type==='Machine' ? timeVal : undefined,
+          interval: type==='Source' ? timeVal : undefined,
+          capacity: idx.capacity!=null && r[idx.capacity] ? parseInt(r[idx.capacity],10) : undefined,
+        });
+        nodes.push(n);
+      }
+      createdByName[name.toLowerCase()] = nodes;
+    });
+    dataRows.forEach((r,i)=>{
+      const name = idx.name!=null ? r[idx.name].trim() : `Row ${i+1}`;
+      const target = idx.connects_to!=null ? r[idx.connects_to].trim() : '';
+      if(!target) return;
+      const fromNodes = createdByName[name.toLowerCase()] || [];
+      const toNodes = createdByName[target.toLowerCase()] || [];
+      if(!fromNodes.length || !toNodes.length) return;
+      // parallel instances from a quantity>1 row share ONE buffer on this leg,
+      // not one auto-buffer per pair -- one shared intake, not N independent ones
+      if(fromNodes[0].type!=='Buffer' && toNodes[0].type!=='Buffer'){
+        const mid = addNode('Buffer', (fromNodes[0].x+toNodes[0].x)/2, (fromNodes[0].y+toNodes[0].y)/2, {auto:true, capacity:20});
+        fromNodes.forEach(f=>addEdge(f.id, mid.id));
+        toNodes.forEach(t=>addEdge(mid.id, t.id));
+      } else {
+        fromNodes.forEach(f=>toNodes.forEach(t=>addEdge(f.id, t.id)));
+      }
+    });
+  } else {
+    const stages = dataRows.map((r,i)=>{
+      const name = idx.name!=null ? r[idx.name].trim() : `Row ${i+1}`;
+      const type = idx.type!=null ? titleCase(r[idx.type].trim()) : inferType(r, idx);
+      const qty = idx.quantity!=null ? (parseInt(r[idx.quantity],10)||1) : 1;
+      if(type==='Buffer') return {kind:'buffer', name, capacity: idx.capacity!=null && r[idx.capacity] ? parseInt(r[idx.capacity],10) : 20};
+      return {kind:'group', name, qty, cycleTime: idx.cycle_time!=null && r[idx.cycle_time] ? parseDuration(r[idx.cycle_time]) : 45};
+    });
+    buildFromStages(stages, 140, canvasCenterY());
+  }
+  autoComplete();
+  layoutGraph();
+  render();
+  toast('Imported — drag anything to rearrange, or press Play.');
+}
+function inferType(r, idx){
+  const nameStr = (idx.name!=null ? r[idx.name] : '').toLowerCase();
+  if(/source|intake|arrival|raw/.test(nameStr)) return 'Source';
+  if(/sink|shipping|output|dispatch|done|finished/.test(nameStr)) return 'Sink';
+  if(idx.capacity!=null && r[idx.capacity] && !(idx.cycle_time!=null && r[idx.cycle_time])) return 'Buffer';
+  return 'Machine';
+}
+
+/* =================================== auto layout =================================== */
+
+function layoutGraph(){
+  const nodes = graph.nodes, edges = graph.edges;
+  const outMap = new Map(nodes.map(n=>[n.id,[]])), inDeg = new Map(nodes.map(n=>[n.id,0]));
+  edges.forEach(e=>{ if(outMap.has(e.from)&&inDeg.has(e.to)){ outMap.get(e.from).push(e.to); inDeg.set(e.to, inDeg.get(e.to)+1); }});
+  const depth = new Map(nodes.map(n=>[n.id,0]));
+  const left = new Map(inDeg);
+  let q = nodes.filter(n=>inDeg.get(n.id)===0).map(n=>n.id);
+  const seen = new Set(q);
+  while(q.length){
+    const p=q.shift();
+    for(const c of (outMap.get(p)||[])){
+      depth.set(c, Math.max(depth.get(c), depth.get(p)+1));
+      left.set(c, left.get(c)-1);
+      if(left.get(c)===0 && !seen.has(c)){ seen.add(c); q.push(c); }
+    }
+  }
+  const cols = new Map();
+  nodes.forEach(n=>{ const d=depth.get(n.id)||0; if(!cols.has(d)) cols.set(d,[]); cols.get(d).push(n); });
+  const COLW=190, ROWH=100;
+  cols.forEach((list,d)=>{
+    const totalH=list.length*ROWH;
+    list.forEach((n,i)=>{ n.x=80+d*COLW; n.y=140+i*ROWH-(totalH-ROWH)/2; });
+  });
+}
+function canvasCenterY(){ const svg=document.getElementById('canvas'); return (svg.clientHeight||600)/2; }
+
+/* ===================================== rendering ===================================== */
+
+const NS='http://www.w3.org/2000/svg';
+function el(tag, attrs, parent){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(parent) parent.appendChild(e); return e; }
+
+const CARD_W=126, CARD_H=68, BUF_W=48, BUF_H=100;
+function portsFor(n){
+  const hasIn = n.type!=='Source', hasOut = n.type!=='Sink';
+  const h = n.type==='Buffer'?BUF_H:CARD_H, w = n.type==='Buffer'?BUF_W:CARD_W;
+  return {
+    in: hasIn ? {x:n.x, y:n.y+h/2} : null,
+    out: hasOut ? {x:n.x+w, y:n.y+h/2} : null,
+  };
+}
+
+function makeGear(size){
+  const g = el('g',{class:'gear'});
+  el('circle',{cx:0,cy:0,r:size*0.42,fill:'none',stroke:'currentColor','stroke-width':size*0.16},g);
+  for(let i=0;i<8;i++){
+    const a = i*45;
+    const t = el('rect',{x:-size*0.09,y:-size*0.62,width:size*0.18,height:size*0.22,rx:1.5,fill:'currentColor',transform:`rotate(${a})`},g);
+  }
+  return g;
+}
+
+const svg = document.getElementById('canvas');
+let defs, viewport, edgeLayer, nodeLayer, particleLayer;
+let panX=60, panY=0;
+
+function initSvg(){
+  svg.innerHTML='';
+  defs = el('defs',{},svg);
+  const pattern = el('pattern',{id:'dots',width:26,height:26,patternUnits:'userSpaceOnUse'},defs);
+  el('circle',{cx:1.3,cy:1.3,r:1.3,fill:'rgba(255,255,255,.06)'},pattern);
+  el('rect',{width:'100%',height:'100%',fill:'var(--bg)'},svg);
+  el('rect',{width:'100%',height:'100%',fill:'url(#dots)'},svg);
+  const marker = el('marker',{id:'arrow',viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'6.5',markerHeight:'6.5',orient:'auto-start-reverse'},defs);
+  el('path',{d:'M0,0 L10,5 L0,10 z',fill:'var(--border-strong)'},marker);
+  viewport = el('g',{id:'viewport', transform:`translate(${panX},${panY})`},svg);
+  edgeLayer = el('g',{},viewport);
+  nodeLayer = el('g',{},viewport);
+  particleLayer = el('g',{},viewport);
+}
+function applyPan(){ if(viewport) viewport.setAttribute('transform',`translate(${panX},${panY})`); }
+
+const nodeEls = new Map();
+
+function edgePath(from, to){
+  const x1=from.x, y1=from.y, x2=to.x, y2=to.y, mx=(x1+x2)/2;
+  return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+}
+
+function render(){
+  initSvg();
+  document.getElementById('welcome').classList.toggle('hidden', graph.nodes.length>0);
+
+  graph.edges.forEach(e=>{
+    const from=nodeById(e.from), to=nodeById(e.to);
+    if(!from||!to) return;
+    const p1=portsFor(from).out, p2=portsFor(to).in;
+    if(!p1||!p2) return;
+    el('path',{class:'edge-path','data-edge':e.id, d:edgePath(p1,p2)}, edgeLayer);
+  });
+
+  nodeEls.clear();
+  graph.nodes.forEach(n=>{
+    const g = el('g',{class:'node-card'+(n.auto?' auto':'')+(n.id===selectedId?' selected':''),'data-id':n.id,transform:`translate(${n.x},${n.y})`}, nodeLayer);
+    if(n.type==='Buffer'){
+      el('rect',{class:'buffer-shell',width:BUF_W,height:BUF_H,rx:5},g);
+      const fill = el('rect',{class:'buffer-fill',x:2,width:BUF_W-4,y:BUF_H-2,height:0},g);
+      el('text',{x:BUF_W/2,y:-10,'text-anchor':'middle',class:'type-label'},g).textContent='BUFFER';
+      el('text',{x:BUF_W/2,y:BUF_H+16,'text-anchor':'middle','font-size':11,'font-weight':600},g).textContent=n.name;
+      const stat = el('text',{x:BUF_W/2,y:BUF_H+30,'text-anchor':'middle',class:'stat-label'},g);
+      if(n.auto) el('text',{x:BUF_W/2,y:BUF_H+42,'text-anchor':'middle',class:'auto-badge'},g).textContent='auto-added';
+      makePorts(g,n);
+      nodeEls.set(n.id,{g,fill,stat,capacity:n.props.capacity,type:'Buffer'});
+    } else {
+      el('rect',{class:'card',width:CARD_W,height:CARD_H,rx:8},g);
+      let icon;
+      if(n.type==='Machine'){ icon = makeGear(11); icon.setAttribute('transform','translate(18,18)'); icon.setAttribute('color','#8791ab'); g.appendChild(icon); }
+      else if(n.type==='Source'){ const c=el('circle',{cx:18,cy:18,r:9,fill:'none',stroke:'var(--accent)','stroke-width':1.6},g); el('path',{d:'M14,13 L23,18 L14,23 Z',fill:'var(--accent)'},g); }
+      else { el('circle',{cx:18,cy:18,r:9,fill:'none',stroke:'var(--accent)','stroke-width':1.6},g); el('path',{d:'M13,18 L16.5,22 L23,14',fill:'none',stroke:'var(--accent)','stroke-width':2,'stroke-linecap':'round','stroke-linejoin':'round'},g); }
+      el('text',{x:32,y:22,'font-size':12,'font-weight':600},g).textContent=n.name;
+      el('text',{x:12,y:40,class:'type-label'},g).textContent=n.type.toUpperCase();
+      const stat = el('text',{x:12,y:56,class:'stat-label'},g);
+      if(n.auto) el('text',{x:CARD_W-8,y:56,'text-anchor':'end',class:'auto-badge'},g).textContent='auto';
+      makePorts(g,n);
+      nodeEls.set(n.id,{g,icon,stat,type:n.type});
+    }
+    g.addEventListener('mousedown', ev=>onNodeMouseDown(ev,n));
+  });
+
+  renderInspector();
+  applyState();
+}
+
+function makePorts(g, n){
+  const ports = portsFor(n);
+  const h = n.type==='Buffer'?BUF_H:CARD_H, w = n.type==='Buffer'?BUF_W:CARD_W;
+  if(ports.in) el('circle',{class:'port','data-role':'in',cx:0,cy:h/2,r:5},g).addEventListener('mouseup',ev=>onPortMouseUp(ev,n,'in'));
+  if(ports.out){
+    const outEl = el('circle',{class:'port','data-role':'out',cx:w,cy:h/2,r:5},g);
+    outEl.addEventListener('mousedown', ev=>{ ev.stopPropagation(); startConnect(n); });
+  }
+}
+
+/* ---- selection & inspector ---- */
+
+function selectNode(id){ selectedId=id; render(); }
+function renderInspector(){
+  const box = document.getElementById('inspector');
+  const n = selectedId ? nodeById(selectedId) : null;
+  if(!n || mode==='running'){ box.classList.add('hidden'); box.innerHTML=''; return; }
+  box.classList.remove('hidden');
+  let extra = '';
+  if(n.type==='Machine'){
+    extra = `
+      <label>How long does one part take?</label>
+      <div class="field-row"><input type="number" id="f-cycle" min="1" value="${n.props.cycleTime}"><select id="f-cycleUnit"><option value="1">sec</option><option value="60">min</option><option value="3600">hr</option></select></div>
+      <details><summary>Reliability (optional)</summary>
+        <label>Breaks down roughly every</label>
+        <div class="field-row"><input type="number" id="f-mtbf" placeholder="never" value="${n.props.mtbf?Math.round(n.props.mtbf/60):''}"><span style="align-self:center;font-size:11px;color:var(--text-dim)">min</span></div>
+        <label>Takes this long to fix</label>
+        <div class="field-row"><input type="number" id="f-mttr" value="${Math.round((n.props.mttr||300)/60)}"><span style="align-self:center;font-size:11px;color:var(--text-dim)">min</span></div>
+      </details>`;
+  } else if(n.type==='Buffer'){
+    extra = `<label>How many can it hold?</label><input type="number" id="f-capacity" min="1" value="${n.props.capacity}">`;
+  } else if(n.type==='Source'){
+    extra = `<label>New part arrives every</label>
+      <div class="field-row"><input type="number" id="f-interval" min="1" value="${n.props.interval}"><select id="f-intervalUnit"><option value="1">sec</option><option value="60">min</option><option value="3600">hr</option></select></div>`;
+  }
+  box.innerHTML = `
+    <div class="row"><h3>${n.type}</h3><button class="del" id="f-del" title="delete">&times;</button></div>
+    <label>Name</label><input type="text" id="f-name" value="${esc(n.name)}">
+    ${extra}
+    ${n.auto ? '<div class="auto-note">We added this automatically so material has somewhere to flow. Edit it or delete it freely.</div>' : ''}
+  `;
+  document.getElementById('f-name').addEventListener('input', e=>{ n.name=e.target.value; updateNodeLabel(n); });
+  document.getElementById('f-del').addEventListener('click', ()=>{ removeNode(n.id); selectedId=null; render(); });
+  if(n.type==='Machine'){
+    document.getElementById('f-cycle').addEventListener('input', e=>{ n.props.cycleTime = (parseFloat(e.target.value)||1) * parseFloat(document.getElementById('f-cycleUnit').value); });
+    document.getElementById('f-cycleUnit').addEventListener('change', e=>{ n.props.cycleTime = (parseFloat(document.getElementById('f-cycle').value)||1) * parseFloat(e.target.value); });
+    document.getElementById('f-mtbf').addEventListener('input', e=>{ n.props.mtbf = e.target.value ? parseFloat(e.target.value)*60 : null; });
+    document.getElementById('f-mttr').addEventListener('input', e=>{ n.props.mttr = (parseFloat(e.target.value)||5)*60; });
+  } else if(n.type==='Buffer'){
+    document.getElementById('f-capacity').addEventListener('input', e=>{ n.props.capacity = Math.max(1, parseInt(e.target.value,10)||1); });
+  } else if(n.type==='Source'){
+    document.getElementById('f-interval').addEventListener('input', e=>{ n.props.interval = (parseFloat(e.target.value)||1) * parseFloat(document.getElementById('f-intervalUnit').value); });
+    document.getElementById('f-intervalUnit').addEventListener('change', e=>{ n.props.interval = (parseFloat(document.getElementById('f-interval').value)||1) * parseFloat(e.target.value); });
+  }
+}
+function updateNodeLabel(n){
+  const els = nodeEls.get(n.id); if(!els) return;
+  const g = els.g;
+  const label = g.querySelector('text');
+}
+
+/* ---- drag / connect interactions ---- */
+
+let dragNode=null, dragOffset=null, connecting=null, rubberEl=null;
+let panning=false, panMouseStart=null, panStart=null;
+
+/* returns world-space coordinates -- same space node.x/node.y live in --
+   by undoing the pan translation applied to the #viewport group */
+function svgPoint(ev){
+  const r = svg.getBoundingClientRect();
+  return {x: ev.clientX-r.left-panX, y: ev.clientY-r.top-panY};
+}
+function onNodeMouseDown(ev, n){
+  if(mode==='running') return;
+  if(ev.target.classList.contains('port')) return;
+  ev.stopPropagation();
+  selectNode(n.id);
+  const p = svgPoint(ev);
+  dragNode = n; dragOffset = {dx:p.x-n.x, dy:p.y-n.y};
+}
+function startConnect(n){
+  if(mode==='running') return;
+  connecting = n;
+  rubberEl = el('path',{class:'rubber',d:''}, viewport);
+}
+function onPortMouseUp(ev, n, role){
+  if(mode==='running') return;
+  if(connecting && role==='in'){
+    ev.stopPropagation();
+    connect(connecting.id, n.id);
+  }
+}
+svg.addEventListener('mousemove', ev=>{
+  if(panning){
+    panX = panStart.x + (ev.clientX-panMouseStart.x);
+    panY = panStart.y + (ev.clientY-panMouseStart.y);
+    applyPan();
+    return;
+  }
+  const p = svgPoint(ev);
+  if(dragNode){
+    dragNode.x = p.x-dragOffset.dx; dragNode.y = p.y-dragOffset.dy;
+    render();
+    selectNode(dragNode.id);
+  } else if(connecting && rubberEl){
+    const out = portsFor(connecting).out;
+    rubberEl.setAttribute('d', edgePath(out, p));
+  }
+});
+svg.addEventListener('mouseup', ()=>{
+  dragNode=null; panning=false; svg.style.cursor='default';
+  if(connecting){ if(rubberEl) rubberEl.remove(); connecting=null; rubberEl=null; }
+});
+svg.addEventListener('mouseleave', ()=>{ panning=false; svg.style.cursor='default'; });
+svg.addEventListener('mousedown', ev=>{
+  if(ev.target===svg || ev.target.tagName==='rect'){
+    selectedId=null; renderInspector(); document.querySelectorAll('.node-card.selected').forEach(e=>e.classList.remove('selected'));
+    if(mode==='edit'){ panning=true; panMouseStart={x:ev.clientX,y:ev.clientY}; panStart={x:panX,y:panY}; svg.style.cursor='grabbing'; }
+  }
+});
+document.addEventListener('keydown', ev=>{
+  if((ev.key==='Delete'||ev.key==='Backspace') && selectedId && mode==='edit' && document.activeElement.tagName!=='INPUT'){
+    removeNode(selectedId); selectedId=null; render();
+  }
+});
+
+/* ---- palette drag & drop ---- */
+
+document.querySelectorAll('.pitem').forEach(item=>{
+  item.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', item.dataset.type); });
+});
+const stageOuter = document.querySelector('.stage-outer');
+stageOuter.addEventListener('dragover', ev=>ev.preventDefault());
+stageOuter.addEventListener('drop', ev=>{
+  ev.preventDefault();
+  const type = ev.dataTransfer.getData('text/plain');
+  if(!type) return;
+  const r = svg.getBoundingClientRect();
+  addNode(type, ev.clientX-r.left-panX-CARD_W/2, ev.clientY-r.top-panY-CARD_H/2);
+  render();
+});
+
+/* ===================================== play / replay ===================================== */
+
+let replay = null; // {events, state, levels, counts, idx, simTime, playing, lastFrame}
+
+function playClicked(){
+  if(!graph.nodes.length){ toast('Add something to the canvas first — or type a description above.'); return; }
+  autoComplete();
+  layoutGraph();
+  render();
+  const until = parseInt(document.getElementById('runFor').value,10);
+  runSimAndEnterReplay(until, Math.floor(Math.random()*1e9));
+}
+function runSimAndEnterReplay(until, seed){
+  const run = buildEngineFromGraph(graph, seed, until);
+  lastRun = run; lastReport = analyseRun(run, until);
+  mode = 'running';
+  document.getElementById('inspector').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('transport').classList.remove('hidden');
+  document.getElementById('reportToggle').classList.remove('hidden');
+
+  const ins = insightText(lastReport);
+  const insightEl = document.getElementById('insight');
+  insightEl.className = 'insight '+ins.tone;
+  insightEl.innerHTML = ins.html;
+
+  buildReportDrawer(lastReport);
+
+  replay = { events: run.engine.events, state:{}, levels:{}, counts:{created:0,completed:0}, idx:0, simTime:0, playing:false, lastFrame:null, duration:until };
+  graph.nodes.forEach(n=>{ if(n.type==='Buffer') replay.levels[n.id]=0; else replay.state[n.id]='idle'; });
+  document.getElementById('scrubber').max = until;
+  seekTo(0);
+  drawReplay();
+  setPlaying(true);
+}
+function setPlaying(p){
+  replay.playing=p; replay.lastFrame=null;
+  document.getElementById('playPauseBtn').innerHTML = p ? '&#10074;&#10074;' : '&#9654;';
+  if(p) requestAnimationFrame(tick);
+}
+function tick(ts){
+  if(!replay || !replay.playing) return;
+  if(replay.lastFrame==null) replay.lastFrame=ts;
+  const dt=(ts-replay.lastFrame)/1000; replay.lastFrame=ts;
+  const speed = Math.max(20, replay.duration/60);
+  seekTo(Math.min(replay.duration, replay.simTime+dt*speed));
+  drawReplay();
+  if(replay.simTime>=replay.duration){ setPlaying(false); return; }
+  requestAnimationFrame(tick);
+}
+function seekTo(t){
+  if(t<replay.simTime) resetReplayState();
+  replay.simTime=t;
+  while(replay.idx<replay.events.length && replay.events[replay.idx].t<=t){
+    applyReplayEvent(replay.events[replay.idx]); replay.idx++;
+  }
+}
+function resetReplayState(){
+  graph.nodes.forEach(n=>{ if(n.type==='Buffer') replay.levels[n.id]=0; else replay.state[n.id]='idle'; });
+  replay.counts.created=0; replay.counts.completed=0; replay.idx=0;
+}
+const flashUntil = new Map();
+function applyReplayEvent(e){
+  if(e.type==='received'||e.type==='released'){ replay.levels[e.path]=e.level; }
+  else if(e.type==='created'){ replay.counts.created++; spawnParticle(e.path, 'out'); }
+  else if(e.type==='completed'){ replay.counts.completed++; }
+  else if(e.type==='cycle_started'){ replay.state[e.path]='running'; }
+  else if(e.type==='blocked'){ replay.state[e.path]='blocked'; }
+  else if(e.type==='starved'){ replay.state[e.path]='starved'; }
+  else if(e.type==='failed'){ replay.state[e.path]='down'; }
+  else if(e.type==='cycle_completed'){ replay.state[e.path]='idle'; spawnParticle(e.path,'out'); }
+  else if(e.type==='repaired'){ replay.state[e.path]='idle'; }
+  flashUntil.set(e.path, performance.now()+280);
+}
+/* CSS-driven, not a per-particle rAF loop: a JS animation loop only advances
+   when the tab is actually painting frames, and a backgrounded/throttled tab
+   (or a fast-forwarded replay spawning many at once) leaves the loop's dot
+   stuck forever -- thousands of never-removed circles. A CSS transition runs
+   on the compositor regardless, and setTimeout guarantees cleanup either way. */
+function spawnParticle(nodeId, dir){
+  if(particleLayer.childNodes.length > 150) return;
+  const edge = dir==='out' ? graph.edges.find(ed=>ed.from===nodeId) : null;
+  if(!edge) return;
+  const from=nodeById(edge.from), to=nodeById(edge.to);
+  if(!from||!to) return;
+  const p1=portsFor(from).out, p2=portsFor(to).in;
+  if(!p1||!p2) return;
+  const dur = 650;
+  const dot = el('circle',{class:'particle',r:3.2,cx:p1.x,cy:p1.y,style:`transition:transform ${dur}ms linear;transform:translate(0,0)`}, particleLayer);
+  requestAnimationFrame(()=>{ dot.style.transform = `translate(${p2.x-p1.x}px,${p2.y-p1.y}px)`; });
+  setTimeout(()=>dot.remove(), dur+80);
+}
+function drawReplay(){
+  const now = performance.now();
+  const bnId = lastReport && lastReport.bottleneck ? lastReport.bottleneck.id : null;
+  nodeEls.forEach((els, id)=>{
+    const flashed = (flashUntil.get(id)||0) > now;
+    if(els.type==='Buffer'){
+      const cap = els.capacity||1, level = replay.levels[id]||0, frac=Math.min(1,level/cap);
+      const h = frac*(BUF_H-4);
+      els.fill.setAttribute('y', BUF_H-2-h); els.fill.setAttribute('height', h);
+      els.fill.classList.toggle('full', level>=cap);
+      els.stat.textContent = `${level} / ${cap}`;
+    } else {
+      const st = replay.state[id]||'idle';
+      els.g.querySelector('.card')?.setAttribute('stroke', st==='idle' ? 'var(--border-strong)' : `var(--${st})`);
+      els.stat.textContent = st==='idle' ? '' : st.toUpperCase();
+      if(els.icon) els.icon.classList.toggle('spin', st==='running');
+    }
+    els.g.classList.toggle('flash', flashed);
+    els.g.classList.toggle('bottleneck', id===bnId);
+  });
+  document.getElementById('hud-throughput').textContent = replay.counts.completed.toLocaleString();
+  document.getElementById('hud-wip').textContent = Math.max(0, replay.counts.created-replay.counts.completed).toLocaleString();
+  document.getElementById('hud-clock').textContent = fmtTime(replay.simTime);
+  document.getElementById('clock').textContent = fmtTime(replay.simTime);
+  document.getElementById('scrubber').value = replay.simTime;
+}
+function applyState(){ if(mode==='running' && replay) drawReplay(); }
+
+function buildReportDrawer(report){
+  const box = document.getElementById('reportDrawer');
+  let stationRows = report.stations.map(s=>`<tr class="${report.bottleneck&&s.id===report.bottleneck.id?'bottleneck':''}"><td>${esc(s.name)}</td><td>${s.processed}</td><td>${(s.utilisation*100).toFixed(0)}%</td><td>${(s.blocked*100).toFixed(0)}%</td><td>${(s.starved*100).toFixed(0)}%</td></tr>`).join('');
+  let bufferRows = report.buffers.map(b=>`<tr><td>${esc(b.name)}</td><td>${b.avg.toFixed(1)}</td><td>${b.peak}</td><td>${b.capacity}</td></tr>`).join('');
+  box.innerHTML = `
+    <table><thead><tr><th>Station</th><th>Made</th><th>Busy</th><th>Blocked</th><th>Waiting</th></tr></thead><tbody>${stationRows}</tbody></table>
+    <table><thead><tr><th>Buffer</th><th>Avg</th><th>Peak</th><th>Cap</th></tr></thead><tbody>${bufferRows}</tbody></table>
+    <div style="font-size:11px;color:var(--text-dim)">Shipped ${report.throughput.toLocaleString()} &middot; avg time in system ${fmtTime(report.avgLead)}</div>
+  `;
+}
+
+/* ===================================== wiring ===================================== */
+
+function backToEdit(){
+  mode='edit'; replay=null;
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('transport').classList.add('hidden');
+  document.getElementById('insight').classList.add('hidden');
+  document.getElementById('reportToggle').classList.add('hidden');
+  document.getElementById('reportDrawer').classList.add('hidden');
+  render();
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._h); toast._h=setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+document.getElementById('playBtn').addEventListener('click', playClicked);
+document.getElementById('quickstartBtn').addEventListener('click', runQuickStart);
+document.getElementById('quickstart').addEventListener('keydown', e=>{ if(e.key==='Enter') runQuickStart(); });
+document.getElementById('csvBtn').addEventListener('click', ()=>document.getElementById('csvFile').click());
+document.getElementById('csvFile').addEventListener('change', e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>importCsvText(reader.result);
+  reader.readAsText(file);
+  e.target.value='';
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  graph.nodes=[]; graph.edges=[]; selectedId=null; localStorage.removeItem('twinops_studio');
+  render();
+});
+document.getElementById('editBtn').addEventListener('click', backToEdit);
+document.getElementById('restartBtn').addEventListener('click', ()=>{ seekTo(0); drawReplay(); setPlaying(false); });
+document.getElementById('playPauseBtn').addEventListener('click', ()=>setPlaying(!replay.playing));
+document.getElementById('scrubber').addEventListener('input', e=>{ setPlaying(false); seekTo(Number(e.target.value)); drawReplay(); });
+document.getElementById('reseedBtn').addEventListener('click', ()=>{
+  const until = parseInt(document.getElementById('runFor').value,10);
+  runSimAndEnterReplay(until, Math.floor(Math.random()*1e9));
+});
+document.getElementById('reportToggle').addEventListener('click', ()=>{
+  document.getElementById('reportDrawer').classList.toggle('hidden');
+});
+
+window.addEventListener('resize', render);
+
+/* ---- persistence ---- */
+function saveLocal(){
+  try{ localStorage.setItem('twinops_studio', JSON.stringify(graph)); }catch(e){}
+}
+setInterval(()=>{ if(mode==='edit') saveLocal(); }, 4000);
+(function restoreLocal(){
+  try{
+    const raw = localStorage.getItem('twinops_studio');
+    if(!raw) return;
+    const saved = JSON.parse(raw);
+    if(saved && saved.nodes && saved.nodes.length){
+      graph.nodes = saved.nodes; graph.edges = saved.edges;
+      NODE_SEQ = Math.max(1, ...graph.nodes.map(n=>parseInt((n.id||'n0').slice(1),10)+1));
+      EDGE_SEQ = Math.max(1, ...(graph.edges.map(e=>parseInt((e.id||'e0').slice(1),10)+1)).concat([1]));
+    }
+  }catch(e){}
+})();
+
+render();
+</script>
+</body>
+</html>

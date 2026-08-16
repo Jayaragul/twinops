@@ -1,7 +1,7 @@
 """The ``.twin`` file format.
 
 A twin is a plain YAML (or JSON) tree. The format is deliberately boring so
-other tools can read and write it without depending on TwinForge:
+other tools can read and write it without depending on TwinOps:
 
     version: 1
     twin:

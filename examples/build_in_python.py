@@ -4,7 +4,7 @@ Answers a real question: does adding a second slow machine beat enlarging the
 buffer in front of it? Run with:  python examples/build_in_python.py
 """
 
-from twinforge import (
+from twinops import (
     Area,
     Buffer,
     Factory,
@@ -14,7 +14,7 @@ from twinforge import (
     Source,
     analyse,
 )
-from twinforge.sim import HOUR
+from twinops.sim import HOUR
 
 
 def build(slow_machines: int = 1, mid_buffer: int = 5) -> Factory:

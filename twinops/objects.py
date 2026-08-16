@@ -1,7 +1,7 @@
 """Industrial objects.
 
 These are the primitives a factory is built from. Every one is a
-:class:`~twinforge.core.TwinObject`, so they compose into a tree and talk to
+:class:`~twinops.core.TwinObject`, so they compose into a tree and talk to
 each other through signals.
 
 Material flow is **pull-with-blocking**, which is how real lines behave:
@@ -62,8 +62,10 @@ class Buffer(TwinObject):
         super().__init__(name, capacity=capacity, **props)
         self.capacity = int(capacity)
         self.items: deque[Part] = deque()
-        self.signal("received")
-        self.signal("released")
+        # rotate: several stations may pull from one buffer, and a fixed
+        # notification order would let the first one take every part
+        self.signal("received", rotate=True)
+        self.signal("released", rotate=True)
         self.signal("full")
         self.signal("empty")
         self._level_time = 0.0   # integral of level over time -> average WIP
