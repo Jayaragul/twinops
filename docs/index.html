@@ -852,7 +852,7 @@ function buildFromStages(stages, originX, originY){
 
 function runQuickStart(){
   const text = document.getElementById('quickstart').value.trim();
-  if(!text){ toast('Type a short description first, e.g. "3 sewing machines, a buffer for 50 shirts"'); return; }
+  if(!text){ toast('Type a short description first, e.g. "3 machines, a buffer for 50 items"'); return; }
   const stages = parseQuickStart(text);
   if(!stages.length){ toast("Couldn't find any machines or buffers in that — try naming them plainly."); return; }
   snapshot();
